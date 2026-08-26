@@ -1,0 +1,1 @@
+export function TimelineGallery() { return <section aria-label="Photo timeline" className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6"><p className="col-span-full py-20 text-center text-gray-500">Your timeline will appear here.</p></section>; }

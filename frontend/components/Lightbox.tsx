@@ -1,0 +1,1 @@
+export function Lightbox({ src, onClose }: { src: string; onClose: () => void }) { return <div role="dialog" className="fixed inset-0 z-10 bg-black/90 p-8" onClick={onClose}><img src={src} alt="Selected photo" className="mx-auto max-h-full" /></div>; }

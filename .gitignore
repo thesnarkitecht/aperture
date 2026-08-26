@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+.next/
+.env
+*.db
+data/photos/*
+!data/photos/.gitkeep
+.DS_Store
