@@ -7,8 +7,6 @@ There are no model files. Every surface, texture and effect is generated at load
 
 ![Perihelion over the planet](media/screenshots/exterior.jpg)
 
-**Walkthrough video:** [`media/perihelion-walkthrough.mp4`](media/perihelion-walkthrough.mp4), 1080p. It was rendered from the app's own tour mode.
-
 | | |
 |---|---|
 | ![Main corridor](media/screenshots/corridor.jpg) | ![Bridge](media/screenshots/bridge.jpg) |
@@ -90,7 +88,7 @@ scripts/
 - **One material, many paints.** Pieces are tinted through vertex colors. A shader patch keeps worn and chipped (metallic) texels untinted, so bare steel shows through paint instead of reading as darker paint.
 - **Ambient occlusion on indirect light only.** GTAO runs as a half-resolution pre-pass, and every PBR material samples it for ambient and reflected light. Emissive screens and direct highlights are never muddied by it.
 - **Lighting.**
-  - The ship has 150+ light fixtures, but only a pool of 6–12 point lights exists at any time. They are reassigned each frame to the fixtures that matter for the current view, and fade in and out so reassignment never pops or recompiles shaders.
+  - The ship has 75 light sources (plus many emissive-only fixtures), but only a pool of 6–12 point lights exists at any time. They are reassigned each frame to the fixtures that matter for the current view, and fade in and out so reassignment never pops or recompiles shaders.
   - The sun casts a 4096² shadow map. The ship is static, so it is rendered once, which lets sunlight fall through the bridge windows.
   - Each room gets a two-bounce reflection probe baked at load.
 - **Space.** The star field, galactic band, dust lanes and nebula are baked once into an HDR cubemap. The planet is shaded live, and the sun is an HDR sprite that bloom turns into glare.
@@ -104,18 +102,18 @@ scripts/
 - Quality presets (Low, Medium, High) scale resolution, AO, light count and shadows.
 - Dynamic resolution backs off automatically when frame time exceeds budget.
 
-## Rendering the video
+## Rendering a video or stills
 
-The tour is deterministic (fixed timestep), so the video is rendered frame by frame in headless Chromium. A GPU is not required.
+The cinematic tour is deterministic (fixed timestep), so it can be rendered offline frame by frame in headless Chromium. A GPU is not required.
 
 ```bash
 pip install imageio-ffmpeg          # or have ffmpeg on PATH
-npm run render:video                # -> media/perihelion-walkthrough.mp4
-npm run render:stills -- 5,30,62    # PNG stills at those seconds
+npm run render:video                # -> media/perihelion-walkthrough.mp4 (1080p30)
+npm run render:stills -- 5,30,62    # PNG stills at those seconds, in .render/
 node scripts/render-video.mjs --segment 0/3   # render in resumable parts, then --concat 3
 ```
 
-On a machine without a GPU, SwiftShader takes a few seconds per 1080p frame. With a real GPU it is much faster.
+On a machine without a GPU, SwiftShader takes a few seconds per 1080p frame, so a full video takes hours. With a real GPU it is much faster.
 
 ## License
 
