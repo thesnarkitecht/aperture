@@ -81,7 +81,7 @@ src/
   player/              walking controller and 2D collision
 scripts/
   render-video.mjs     deterministic headless render of the tour to MP4
-  views.mjs            render arbitrary viewpoints to PNG (for stills and debugging)
+  views.mjs            render arbitrary viewpoints to PNG against `npm run dev` (debugging)
 ```
 
 ### Rendering

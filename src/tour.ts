@@ -127,7 +127,6 @@ interface Built {
   start: number;
   pos: THREE.CatmullRomCurve3;
   look: THREE.CatmullRomCurve3;
-  /** Cumulative arc length at each key, for walking bob. */
 }
 
 function smooth(x: number) {
