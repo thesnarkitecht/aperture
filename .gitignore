@@ -1,10 +1,6 @@
-__pycache__/
-*.py[cod]
-.venv/
 node_modules/
-.next/
-.env
-*.db
-data/photos/*
-!data/photos/.gitkeep
+dist/
 .DS_Store
+*.log
+# Intermediate render output (final video lives in media/)
+.render/

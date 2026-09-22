@@ -1,0 +1,25 @@
+{
+  "name": "perihelion",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A walkable, procedurally modeled industrial spaceship built with Three.js and custom GLSL shaders.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "render:video": "node scripts/render-video.mjs",
+    "render:stills": "node scripts/render-video.mjs --stills"
+  },
+  "dependencies": {
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "playwright-core": "^1.56.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6"
+  }
+}
