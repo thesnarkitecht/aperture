@@ -29,7 +29,7 @@ export const QUALITY: Record<QualityName, Quality> = {
   low: { name: 'low', maxPixelRatio: 1, ao: 0, aoSamples: 8, bloom: true, lights: 6, shadowSize: 1024, aa: 'fxaa', dynamicResolution: true },
   medium: { name: 'medium', maxPixelRatio: 1.25, ao: 0.5, aoSamples: 12, bloom: true, lights: 8, shadowSize: 2048, aa: 'fxaa', dynamicResolution: true },
   high: { name: 'high', maxPixelRatio: 2, ao: 0.5, aoSamples: 16, bloom: true, lights: 12, shadowSize: 4096, aa: 'smaa', dynamicResolution: true },
-  cinematic: { name: 'cinematic', maxPixelRatio: 1, ao: 1, aoSamples: 16, bloom: true, lights: 12, shadowSize: 4096, aa: 'smaa', dynamicResolution: false },
+  cinematic: { name: 'cinematic', maxPixelRatio: 1, ao: 0.5, aoSamples: 16, bloom: true, lights: 12, shadowSize: 4096, aa: 'smaa', dynamicResolution: false },
 };
 
 const FinalShader = {

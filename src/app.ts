@@ -50,6 +50,8 @@ export class App {
     this.pipeline = new Pipeline(container, this.scene, this.camera, QUALITY[qualityName], { preserveDrawingBuffer: !!opts.capture });
     this.scene.fog = this.fog;
     this.camera.layers.enable(FX_LAYER);
+    // Offline renders keep grain subtle so the encoder spends bits on the image, not noise.
+    if (opts.capture) this.pipeline.finalUniforms.uGrain.value = 0.014;
   }
 
   async init(progress: (frac: number, label: string) => void) {

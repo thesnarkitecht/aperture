@@ -166,12 +166,12 @@ export function createPlumeMaterial(color = new THREE.Color(0.45, 0.65, 1.0)) {
         float facing = abs(dot(normalize(-vViewPos), normalize(vNormalV)));
         float body = pow(facing, 1.5);
         float diamonds = 0.5 + 0.5 * cos(along * 38.0 - uTime * 2.0);
-        diamonds = pow(diamonds, 6.0) * smoothstep(0.55, 0.0, along);
+        diamonds = pow(diamonds, 10.0) * smoothstep(0.32, 0.0, along);
         float turb = fbm3(vec3(vPos.x * 2.0, vPos.y * 0.6 - uTime * 9.0, vPos.z * 2.0));
         float fade = pow(1.0 - along, 2.2) * smoothstep(0.0, 0.03, along);
         vec3 hot = vec3(0.9, 0.95, 1.0);
         vec3 col = mix(uColor, hot, diamonds * 0.8 + (1.0 - along) * 0.3);
-        float a = fade * pow(body, 1.5) * (0.35 + 0.8 * turb) * 0.6 + diamonds * body * 0.9;
+        float a = fade * pow(body, 1.5) * (0.35 + 0.8 * turb) * 0.6 + diamonds * pow(body, 2.0) * 0.45;
         gl_FragColor = vec4(col * a * 1.5 * uThrottle, 1.0);
       }
     `,

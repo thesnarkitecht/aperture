@@ -23,6 +23,7 @@ const app = new App(container, quality, { capture });
 const walk = new WalkController(app.pipeline.renderer.domElement);
 const tour = new Tour();
 (window as unknown as { __app: App }).__app = app;
+(window as unknown as { __THREE: typeof THREE }).__THREE = THREE;
 
 const $ = (id: string) => document.getElementById(id)!;
 const ui = {

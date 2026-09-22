@@ -125,7 +125,7 @@ export class WalkController implements CameraDriver {
   }
 
   update(dt: number, camera: THREE.PerspectiveCamera, app: App) {
-    dt = Math.min(dt, 0.05);
+    dt = Math.min(dt, 0.1);
     const k = this.keys;
     let fx = 0;
     let fz = 0;
