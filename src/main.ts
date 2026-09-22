@@ -48,6 +48,8 @@ const ui = {
 
 type Mode = 'menu' | 'walk' | 'tour';
 let mode: Mode = 'menu';
+/** Whether the player has boarded yet; later visits resume where they left off. */
+let boarded = false;
 
 /** Slow orbit around the ship behind the menu. */
 const idle: CameraDriver = {
@@ -183,12 +185,15 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Backquote') ui.stats.classList.toggle('hidden');
   if (e.code === 'KeyT') {
     if (mode === 'tour') {
-      walk.syncFrom(app.camera, app);
+      // Hand control back wherever the tour camera is (inside the ship only).
+      if (app.zone !== EXTERIOR) walk.syncFrom(app.camera, app);
+      boarded = true;
       setMode('walk');
       walk.requestLock();
     } else setMode('tour');
   }
-  if (e.code === 'Escape' && mode === 'tour') setMode('menu');
+  // Esc always returns to the menu (pointer-lock exit handles it too when locked).
+  if (e.code === 'Escape' && (mode === 'tour' || (mode === 'walk' && !walk.locked))) setMode('menu');
 });
 
 walk.onLockChange = (locked) => {
@@ -196,7 +201,8 @@ walk.onLockChange = (locked) => {
 };
 
 $('btn-walk').addEventListener('click', () => {
-  if (app.driver === idle) walk.place(-3.4, -4.75, -Math.PI / 2, -0.04);
+  if (!boarded) walk.place(-3.4, -4.75, -Math.PI / 2, -0.04);
+  boarded = true;
   setMode('walk');
   walk.requestLock();
   ui.hint.style.opacity = '1';
