@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Perihelion</title>
+    <meta
+      name="description"
+      content="Walk through CSV Perihelion, a procedurally modeled deep-space ore hauler rendered in real time with Three.js and custom GLSL shaders."
+    />
+    <meta name="theme-color" content="#07090c" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2307090c'/%3E%3Cpath d='M16 5 L25 27 L16 22 L7 27 Z' fill='none' stroke='%23f2a33a' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <div id="viewport"></div>
+
+    <div id="ui">
+      <section id="loader" class="panel-screen">
+        <div class="brand">
+          <div class="brand-mark">CSV-7061</div>
+          <h1>PERIHELION</h1>
+          <p class="tagline">Deep-space ore hauler &middot; Kessler-Vance Heavy Yards</p>
+        </div>
+        <div class="progress">
+          <div class="progress-bar"><span id="progress-fill"></span></div>
+          <div id="progress-text" class="mono">Initialising&hellip;</div>
+        </div>
+      </section>
+
+      <section id="menu" class="panel-screen hidden">
+        <div class="brand">
+          <div class="brand-mark">CSV-7061</div>
+          <h1>PERIHELION</h1>
+          <p class="tagline">Deep-space ore hauler &middot; Kessler-Vance Heavy Yards</p>
+        </div>
+        <div class="menu-actions">
+          <button id="btn-walk" class="btn primary" type="button">Board the ship</button>
+          <button id="btn-tour" class="btn" type="button">Cinematic tour</button>
+        </div>
+        <div class="menu-quality">
+          <span class="mono label">Quality</span>
+          <div class="seg" id="quality-seg" role="radiogroup" aria-label="Render quality">
+            <button type="button" data-q="low">Low</button>
+            <button type="button" data-q="medium">Medium</button>
+            <button type="button" data-q="high">High</button>
+          </div>
+        </div>
+        <dl class="keys mono">
+          <div><dt>WASD / Arrows</dt><dd>Move</dd></div>
+          <div><dt>Mouse</dt><dd>Look</dd></div>
+          <div><dt>Shift</dt><dd>Sprint</dd></div>
+          <div><dt>C</dt><dd>Crouch</dd></div>
+          <div><dt>F</dt><dd>Flashlight</dd></div>
+          <div><dt>T</dt><dd>Tour</dd></div>
+          <div><dt>M</dt><dd>Deck map</dd></div>
+          <div><dt>`</dt><dd>Stats</dd></div>
+        </dl>
+      </section>
+
+      <div id="hud" class="hidden">
+        <div id="crosshair"></div>
+        <div id="location" class="mono">
+          <span id="location-deck">DECK A</span>
+          <span id="location-name">CORRIDOR</span>
+        </div>
+        <div id="hint" class="mono">Esc for menu &middot; F flashlight &middot; M map &middot; T tour</div>
+        <canvas id="minimap" class="hidden" width="360" height="560" aria-label="Deck map"></canvas>
+        <pre id="stats" class="mono hidden"></pre>
+        <div id="caption" class="hidden">
+          <div id="caption-kicker" class="mono"></div>
+          <div id="caption-title"></div>
+        </div>
+      </div>
+
+      <div id="touch" class="hidden">
+        <div id="stick"><div id="stick-knob"></div></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
