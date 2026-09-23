@@ -21,7 +21,7 @@ float aw_cloudCoverage(vec2 xz, out float tower) {
   float cov = 0.58 + 0.5 * (n - 0.5) * 1.6;
   // Dense directly under the island so the dive always passes through cloud.
   float r = length(rel - uSunXZ * 200.0);
-  cov = max(cov, 0.93 * (1.0 - smoothstep(500.0, 1300.0, r)));
+  cov = max(cov, 0.8 * (1.0 - smoothstep(500.0, 1300.0, r)));
   // Rift towards the sun.
   float wob = (w2.b - 0.5) * 500.0;
   float halfW = 300.0 + max(along, 0.0) * 0.14;

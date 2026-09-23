@@ -38,12 +38,15 @@ float cloudDensity(vec3 p, bool detail, float lod) {
   float tower;
   float cov = aw_cloudCoverage(p.xz, tower);
   if (cov < 0.02) return 0.0;
-  float top = aw_cloudTop(cov, tower);
-  float hf = (p.y - uCloudLayer.x) / (top - uCloudLayer.x);
-  if (hf <= 0.0 || hf >= 1.0) return 0.0;
-  float prof = smoothstep(0.0, 0.1, hf) * smoothstep(1.0, 0.45 - tower * 0.25, hf);
+  if (p.y < uCloudLayer.x || p.y > uCloudLayer.y + 300.0) return 0.0;
   vec3 q = p + vec3(uCloudWind.x, 0.0, uCloudWind.y);
   vec4 s = textureLod(uShape, q * SHAPE_SCALE, lod);
+  // Billowing tops: the column height follows the low-frequency shape noise.
+  vec4 sl = textureLod(uShape, vec3(q.x, 0.0, q.z) * SHAPE_SCALE * 0.55, lod + 1.0);
+  float top = aw_cloudTop(cov, tower) + (sl.r - 0.45) * 420.0;
+  float hf = (p.y - uCloudLayer.x) / max(top - uCloudLayer.x, 60.0);
+  if (hf <= 0.0 || hf >= 1.0) return 0.0;
+  float prof = smoothstep(0.0, 0.1, hf) * smoothstep(1.0, 0.35 - tower * 0.2, hf);
   float fbm = s.g * 0.625 + s.b * 0.25 + s.a * 0.125;
   float base = clamp(aw_remap(s.r, fbm - 1.0, 1.0, 0.0, 1.0), 0.0, 1.0);
   float c = clamp(aw_remap(base * prof, 1.0 - cov, 1.0, 0.0, 1.0), 0.0, 1.0);
@@ -132,7 +135,7 @@ void main() {
       }
       float powder = 1.0 - exp(-dens * 12.0);
       vec3 amb = mix(skyHor * 0.35 + vec3(0.03, 0.025, 0.03), skyTop, smoothstep(0.0, 1.0, hf));
-      vec3 S = uSunColor * sunL * mix(0.6, 1.0, powder) * 0.9 + amb * (0.6 + 0.4 * hf);
+      vec3 S = uSunColor * sunL * mix(0.35, 1.0, powder) * 0.32 + amb * (0.45 + 0.55 * hf);
       float ext = dens * sigma;
       float Tr = exp(-ext * dt);
       vec3 Sint = S * (1.0 - Tr);
@@ -383,7 +386,7 @@ export interface PipelineParams {
 
 export class Pipeline {
   params: PipelineParams = {
-    exposure: 0.62,
+    exposure: 0.46,
     bloom: 0.06,
     rays: 0.35,
     vignette: 0.42,

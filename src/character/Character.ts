@@ -103,8 +103,8 @@ export class Character {
         vec3 wing(vec2 uv) {
           float u = uv.x * 2.0 - 1.0;            // -1..1 across the span
           float a = abs(u);
-          float span = 1.9 * uDeploy;
-          float chord = mix(0.95, 0.3, pow(a, 1.6)) * smoothstep(0.0, 0.4, uDeploy);
+          float span = 2.3 * uDeploy;
+          float chord = mix(1.25, 0.4, pow(a, 1.6)) * smoothstep(0.0, 0.4, uDeploy);
           float x = u * span;
           // Leading edge sweeps back to crescent tips; gentle dihedral, fabric billows.
           float lead = 0.02 - pow(a, 2.0) * 0.45 * uDeploy;

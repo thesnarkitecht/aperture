@@ -40,9 +40,9 @@ export interface WindInput {
 
 // --- Tuning -----------------------------------------------------------------
 /** Layer levels at full airspeed (air = 1, ~60 m/s free fall). */
-const FULL = { rumble: 0.95, body: 0.5, hiss: 0.11, whistle: 0.022 };
+const FULL = { rumble: 0.5, body: 0.5, hiss: 0.14, whistle: 0.02 };
 /** Layer levels of the gentle island breeze (air ≈ 0). */
-const BREEZE = { rumble: 0.11, body: 0.07, hiss: 0.014, whistle: 0.012 };
+const BREEZE = { rumble: 0.065, body: 0.08, hiss: 0.014, whistle: 0.012 };
 /** Gliding softens the airspeed-driven layers by these factors. */
 const GLIDE_SOFTEN = { rumble: 0.72, body: 0.78, hiss: 0.55, whistle: 0.6 };
 /** Clothing flap level at full free fall. */
@@ -220,11 +220,12 @@ export class Wind {
     const br = clamp01(s.breeze) * swell;
     const step = 1 - 0.3 * clamp01(s.reveal);
     const hiCut = 1 - 0.75 * cloud;
+    const inCloud = 1 - 0.3 * cloud; // the whiteout is muffled and a little quieter
     const lvl = (k: keyof typeof FULL): number => BREEZE[k] * br + FULL[k] * aa * lerp(1, GLIDE_SOFTEN[k], g);
 
     const tcL = 0.22;
-    this.rumbleLvl.set(lvl('rumble') * step, tcL);
-    this.bodyLvl.set(lvl('body') * step, tcL);
+    this.rumbleLvl.set(lvl('rumble') * step * inCloud, tcL);
+    this.bodyLvl.set(lvl('body') * step * inCloud, tcL);
     this.hissLvl.set(lvl('hiss') * step * hiCut, tcL);
     this.whistleLvl.set(lvl('whistle') * step * (1 - cloud), 0.4);
     this.cloudLvl.set(cloud * (0.03 + 0.1 * a), 0.4);

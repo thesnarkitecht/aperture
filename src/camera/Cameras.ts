@@ -192,8 +192,8 @@ export class GameplayCamera {
 export const OPENING_SHOTS: Shot[] = [
   // Establishing: drifting wide around the island, the hero tiny against the cloud sea.
   { name: 'establish', start: 0, duration: 7, blend: 0, ease: 'inOutSine',
-    from: { space: 'char', pos: [-26, 9, -30], look: [0, 2, 25], fov: 48 },
-    to: { space: 'char', pos: [-9, 3.2, -11], look: [0, 1.3, 8], fov: 44 } },
+    from: { space: 'char', pos: [-34, 26, -40], look: [0, -14, 110], fov: 50 },
+    to: { space: 'char', pos: [-10, 4.5, -12], look: [0, 0.4, 14], fov: 44 } },
   // Close three-quarter behind: rim-lit idle, looking around.
   { name: 'idle-close', start: 6.5, duration: 3.5, blend: 1.5,
     from: { space: 'char', pos: [-2.4, 1.7, -3.2], look: [0.2, 1.45, 2], fov: 40 },

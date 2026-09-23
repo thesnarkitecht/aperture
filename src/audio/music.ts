@@ -45,7 +45,7 @@ export interface MusicInput {
 
 // --- Tuning -----------------------------------------------------------------
 /** Overall score level (gate on both dry and reverb send). */
-const MUSIC_LEVEL = 0.55;
+const MUSIC_LEVEL = 0.5;
 /** Peak gain of one pad chord layer. */
 const PAD_PEAK = 0.022;
 /** Peak gain of a pluck at velocity 1. */
@@ -253,9 +253,9 @@ export class Music {
     const gate = this.enabled ? MUSIC_LEVEL : 0;
     this.gateDry.set(gate, this.enabled ? 1.2 : 0.6);
     this.gateWet.set(gate, this.enabled ? 1.2 : 0.6);
-    this.padLvl.set((0.55 + 0.65 * I) * (1 - 0.7 * th), 1.5);
+    this.padLvl.set((0.55 + 0.35 * I) * (1 - 0.7 * th), 1.5);
     this.padCut.set(520 * Math.pow(2, 2.3 * I) * (1 - 0.35 * th), 1.5);
-    this.pluckLvl.set((0.8 + 0.4 * I) * (1 - 0.85 * th), 1);
+    this.pluckLvl.set((0.8 + 0.2 * I) * (1 - 0.85 * th), 1);
     this.leadLvl.set(1 - 0.5 * th, 1);
 
     if (!this.enabled) return;
@@ -329,7 +329,7 @@ export class Music {
 
     if (I > 0.28) {
       // centred bass: sine root plus a soft octave
-      const bg = gainNode(c, 0.9 * Math.min(1, (I - 0.28) * 3));
+      const bg = gainNode(c, 0.4 * Math.min(1, (I - 0.28) * 3));
       bg.connect(envL);
       bg.connect(envR);
       extra.push(bg);
@@ -338,7 +338,7 @@ export class Music {
     }
     if (I > 0.5) {
       // high colour tones, slightly off-centre
-      const lvl = 0.45 * Math.min(1, (I - 0.5) * 3);
+      const lvl = 0.35 * Math.min(1, (I - 0.5) * 3);
       const tilt = rand(-0.25, 0.25);
       const hgL = gainNode(c, lvl * (1 - tilt));
       const hgR = gainNode(c, lvl * (1 + tilt));

@@ -396,7 +396,7 @@ export class Island {
           float n = texture(uNoise2D, vWorld.xz * 0.2 + vWorld.y * 0.1).g;
           float n2 = texture(uNoise2D, vWorld.xy * 0.37).b;
           AwSurface s = aw_defaultSurface();
-          vec3 rock = mix(vec3(0.33, 0.30, 0.27), vec3(0.47, 0.43, 0.38), n);
+          vec3 rock = mix(vec3(0.19, 0.17, 0.15), vec3(0.29, 0.26, 0.22), n);
           float moss = smoothstep(0.55, 0.9, N.y) * smoothstep(0.35, 0.65, n2);
           s.albedo = mix(rock, vec3(0.16, 0.22, 0.06), moss);
           s.normal = normalize(N + (vec3(n, n2, 1.0 - n) - 0.5) * 0.3);

@@ -81,8 +81,8 @@ export class Foley {
           { at: t + roll, amp: 0.22 * L * toe, att: 0.004, dec: 0.05 },
         ], { rate });
         this.burst(b.pink, [
-          { type: 'highpass', f: 2000 * p, q: -3 },
-          { type: 'lowpass', f: 7500, q: -3 },
+          { type: 'highpass', f: 1900 * p, q: -3 },
+          { type: 'lowpass', f: 5500, q: -3 },
         ], [
           { at: t + 0.003, amp: 0.34 * L, att: 0.006, dec: lerp(0.15, 0.09, I) },
           { at: t + roll, amp: 0.3 * L * toe, att: 0.008, dec: 0.08 },
@@ -99,24 +99,30 @@ export class Foley {
           { at: t + 0.002, amp: 0.55 * L, att: 0.003, dec: 0.07 },
           { at: t + roll, amp: 0.4 * L * toe, att: 0.004, dec: 0.06 },
         ], { rate, pan: rand(-0.1, 0.1) });
-        this.burst(b.grit, [{ type: 'highpass', f: 3600 * p, q: -3 }], [
-          { at: t + 0.004, amp: 0.16 * L, att: 0.004, dec: 0.05 },
+        this.burst(b.grit, [
+          { type: 'highpass', f: 3200 * p, q: -3 },
+          { type: 'lowpass', f: 7000, q: -3 },
+        ], [
+          { at: t + 0.004, amp: 0.14 * L, att: 0.004, dec: 0.05 },
         ], { rate });
         break;
       }
       case 'rock': {
         this.thump(t, 115 * p, 70 * p, 0.045, 0.24 * L);
         this.burst(b.white, [
-          { type: 'bandpass', f: 2600 * p, q: 1.1 },
-          { type: 'lowpass', f: 7000, q: -3 },
+          { type: 'bandpass', f: 2200 * p, q: 1.1 },
+          { type: 'lowpass', f: 6000, q: -3 },
         ], [
-          { at: t, amp: 0.3 * L, att: 0.0015, dec: 0.025 },
-          { at: t + roll, amp: 0.22 * L * toe, att: 0.0015, dec: 0.02 },
+          { at: t, amp: 0.3 * L, att: 0.0025, dec: 0.025 },
+          { at: t + roll, amp: 0.22 * L * toe, att: 0.0025, dec: 0.02 },
         ], { rate });
         this.burst(b.pink, [{ type: 'bandpass', f: 650 * p, q: 1.4 }], [
           { at: t, amp: 0.55 * L, att: 0.002, dec: 0.04 },
         ], { rate });
-        this.burst(b.grit, [{ type: 'highpass', f: 2800 * p, q: -3 }], [
+        this.burst(b.grit, [
+          { type: 'highpass', f: 2800 * p, q: -3 },
+          { type: 'lowpass', f: 7500, q: -3 },
+        ], [
           { at: t + 0.006, amp: 0.14 * L, att: 0.004, dec: 0.06 },
           { at: t + roll + 0.004, amp: 0.12 * L * toe, att: 0.004, dec: 0.05 },
         ], { rate, pan: rand(-0.1, 0.1) });
@@ -145,14 +151,14 @@ export class Foley {
     const L = LAND_LEVEL * (0.35 + 0.65 * I);
     const b = this.bank;
     this.thump(t, 75, 38, 0.12 + 0.15 * I, 0.55 * L);
-    this.burst(b.pink, [{ type: 'lowpass', f: 500 + 1500 * I, q: -3 }], [
-      { at: t, amp: 0.65 * L, att: 0.002, dec: 0.07 + 0.08 * I },
+    this.burst(b.pink, [{ type: 'lowpass', f: 500 + 1300 * I, q: -3 }], [
+      { at: t, amp: 0.65 * L, att: 0.003, dec: 0.07 + 0.08 * I },
     ]);
     switch (surface) {
       case 'grass':
         this.burst(b.pink, [
           { type: 'highpass', f: 1800, q: -3 },
-          { type: 'lowpass', f: 7000, q: -3 },
+          { type: 'lowpass', f: 5500, q: -3 },
         ], [{ at: t + 0.004, amp: 0.32 * L, att: 0.005, dec: 0.16 + 0.12 * I }], { pan: rand(-0.1, 0.1) });
         break;
       case 'dirt':
@@ -162,9 +168,9 @@ export class Foley {
         break;
       case 'rock':
         this.burst(b.white, [
-          { type: 'bandpass', f: 2400, q: 1.2 },
-          { type: 'lowpass', f: 7000, q: -3 },
-        ], [{ at: t, amp: 0.3 * L, att: 0.0015, dec: 0.035 }]);
+          { type: 'bandpass', f: 2200, q: 1.2 },
+          { type: 'lowpass', f: 6000, q: -3 },
+        ], [{ at: t, amp: 0.3 * L, att: 0.0025, dec: 0.035 }]);
         this.burst(b.grit, [{ type: 'highpass', f: 2800, q: -3 }], [
           { at: t + 0.005, amp: 0.2 * L, att: 0.004, dec: 0.1 },
         ]);
@@ -227,7 +233,7 @@ export class Foley {
     this.burst(b.white, [
       { type: 'highpass', f: 6500, q: -3 },
       { type: 'lowpass', f: 12000, q: -3 },
-    ], [{ at: t + 0.45, amp: 0.022 * G, att: 0.3, dec: 1.1 }], { dest: this.magic, pan: 0.1, panTo: -0.1 });
+    ], [{ at: t + 0.45, amp: 0.012 * G, att: 0.3, dec: 1.1 }], { dest: this.magic, pan: 0.1, panTo: -0.1 });
   }
 
   /** Glider folding away: descending whoosh, fabric rustle, soft flump, faint falling shimmer. */

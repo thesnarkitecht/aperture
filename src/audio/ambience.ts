@@ -54,8 +54,8 @@ const BIRD_INTERVAL: [number, number] = [3.2, 10];
 const GRASS_MOVE = 0.11;
 /** Idle grass-in-the-breeze level. */
 const GRASS_IDLE = 0.012;
-/** Waterfall level at ~0 m (falls off ~ 1/(1 + d/45)). */
-const WATERFALL_NEAR = 0.32;
+/** Waterfall level at ~0 m (falls off ~ 1/(1 + d/40)). */
+const WATERFALL_NEAR = 0.2;
 const WATERFALL_MAX_DIST = 1500;
 
 type Shape = 'chirp' | 'whistle' | 'swell';
@@ -177,7 +177,7 @@ export class Ambience {
     // ---- waterfall
     const d = Number.isFinite(s.waterfallDistance) ? Math.max(0, s.waterfallDistance) : Infinity;
     let wf = 0;
-    if (d < WATERFALL_MAX_DIST) wf = (WATERFALL_NEAR * 45) / (45 + d) * smoothstep(WATERFALL_MAX_DIST, WATERFALL_MAX_DIST * 0.6, d);
+    if (d < WATERFALL_MAX_DIST) wf = (WATERFALL_NEAR * 40) / (40 + d) * smoothstep(WATERFALL_MAX_DIST, WATERFALL_MAX_DIST * 0.6, d);
     this.wfLvl.set(wf * lerp(1, duck, 0.6), 0.8);
     if (Number.isFinite(d)) this.wfLp.set(900 + 9000 * (80 / (80 + d)), 0.8);
   }
