@@ -4,9 +4,10 @@ import { createStage } from './core/stage.js';
 import { createMaterials } from './core/materials.js';
 import { Rig, keyed } from './core/rig.js';
 import { buildBody } from './parts/body.js';
-import { buildTopPlate, buildGearTrain } from './parts/topplate.js';
+import { buildTopPlate } from './parts/topplate.js';
 import { buildLens, setIris } from './parts/lens.js';
-import { buildShutter, buildFilm, buildRangefinder, buildElectronics } from './parts/internals.js';
+import { buildRangefinder } from './parts/rangefinder.js';
+import { buildSensor, buildShutter, buildMainboard } from './parts/digital.js';
 import { keys } from './chapters.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -45,8 +46,7 @@ async function main() {
   await step(0.45);
   const body = buildBody(M, rig);
   const top = buildTopPlate(M, rig);
-  const gears = buildGearTrain(M, rig);
-  root.add(body.body, top.top, gears.group);
+  root.add(body.body, top.top);
 
   await step(0.6);
   const lens = buildLens(M, rig);
@@ -54,10 +54,10 @@ async function main() {
 
   await step(0.72);
   const shutter = buildShutter(M, rig);
-  const film = buildFilm(M, rig);
+  const sensor = buildSensor(M, rig);
+  const board = buildMainboard(M, rig);
   const rf = buildRangefinder(M, rig);
-  const elec = buildElectronics(M, rig);
-  root.add(shutter.group, film.group, rf.group, elec.group);
+  root.add(shutter.group, sensor.group, board.group, rf.group);
 
   // Keep glowing / transparent overlays out of the ambient-occlusion G-buffer.
   root.traverse((o) => {
@@ -70,29 +70,37 @@ async function main() {
   try { await renderer.compileAsync(scene, camera); } catch { /* lazy compile fallback */ }
 
   // ---- Scroll → explode timeline ---------------------------------------------
+  // Beats: 0 hero · 1 lens · 2 optics · 3 iris · 4 top plate · 5 rangefinder ·
+  // 6 rear · 7 sensor & shutter · 8 battery & base · 9 everything · 10 assembled
+  const out = (k) => [[9.55, 1], [10.15, 0]].map(([t, v]) => [t, v * k]);
   const W = {
-    lens: keyed([[0.25, 0], [1.0, 1], [9.55, 1], [10.15, 0]]),
+    lens: keyed([[0.25, 0], [1.0, 1], ...out(1)]),
     lensPark: keyed([[3.55, 0], [4.2, 1], [8.25, 1], [9.0, 0]]),
-    lensInner: keyed([[1.2, 0], [2.0, 1], [3.55, 1], [4.2, 0], [8.3, 0], [9.0, 1], [9.55, 1], [10.15, 0]]),
-    iris: keyed([[2.3, 0], [2.95, 1], [3.55, 1], [4.2, 0], [8.3, 0], [9.0, 1], [9.55, 1], [10.15, 0]]),
-    spreadLens: keyed([[8.3, 0], [9.0, 1], [9.55, 1], [10.15, 0]]),
-    top: keyed([[3.3, 0], [4.0, 1], [9.55, 1], [10.15, 0]]),
-    topHigh: keyed([[4.3, 0], [5.0, 1], [9.55, 1], [10.15, 0]]),
-    rf: keyed([[4.35, 0], [5.0, 1], [9.55, 1], [10.15, 0]]),
-    rfSpread: keyed([[4.6, 0], [5.2, 1], [9.55, 1], [10.15, 0]]),
-    skin: keyed([[5.3, 0], [6.0, 1], [9.55, 1], [10.15, 0]]),
-    rear: keyed([[5.35, 0], [6.05, 1], [9.55, 1], [10.15, 0]]),
-    shutter: keyed([[6.3, 0], [7.0, 1], [9.55, 1], [10.15, 0]]),
-    base: keyed([[7.2, 0], [7.9, 1], [9.55, 1], [10.15, 0]]),
-    film: keyed([[7.3, 0], [8.0, 1], [9.55, 1], [10.15, 0]]),
+    lensInner: keyed([[1.2, 0], [2.0, 1], [3.55, 1], [4.2, 0], [8.3, 0], [9.0, 1], ...out(1)]),
+    iris: keyed([[2.3, 0], [2.95, 1], [3.55, 1], [4.2, 0], [8.3, 0], [9.0, 1], ...out(1)]),
+    spreadLens: keyed([[8.3, 0], [9.0, 1], ...out(1)]),
+    top: keyed([[3.3, 0], [4.0, 1], ...out(1)]),
+    topHigh: keyed([[4.3, 0], [5.0, 1], ...out(1)]),
+    rf: keyed([[4.35, 0], [5.0, 1], ...out(1)]),
+    rfSpread: keyed([[4.6, 0], [5.2, 1], ...out(1)]),
+    skin: keyed([[5.3, 0], [6.0, 1], ...out(1)]),
+    rear: keyed([[5.35, 0], [6.05, 1], ...out(1)]),
+    displaySpread: keyed([[5.6, 0], [6.2, 1], ...out(1)]),
+    mainboard: keyed([[6.2, 0], [6.8, 1], ...out(1)]),
+    sensor: keyed([[6.35, 0], [6.95, 1], ...out(1)]),
+    sensorSpread: keyed([[6.6, 0], [7.15, 1], ...out(1)]),
+    shutter: keyed([[6.45, 0], [7.05, 1], ...out(1)]),
+    battery: keyed([[7.2, 0], [7.85, 1], ...out(1)]),
+    bottom: keyed([[7.3, 0], [7.95, 1], ...out(1)]),
   };
-  const spreadK = keyed([[8.3, 0], [9.0, 1], [9.55, 1], [10.15, 0]]);
+  const spreadK = keyed([[8.3, 0], [9.0, 1], ...out(1)]);
   const floatK = keyed([[0.3, 0], [1.0, 1], [9.6, 1], [10.1, 0]]);
-  const floorK = keyed([[0.2, -39.3], [0.9, -125], [7.2, -125], [7.9, -165], [9.6, -165], [10.2, -39.3]]);
+  const floorK = keyed([[0.2, -40.2], [0.9, -125], [7.2, -125], [7.9, -165], [9.6, -165], [10.2, -40.2]]);
   const shadowK = keyed([[0, 0.34], [0.9, 0.16], [9.6, 0.16], [10.2, 0.34]]);
   const raysK = keyed([[1.45, 0], [1.9, 1], [2.45, 1], [2.8, 0]]);
   const rfLightK = keyed([[4.6, 0], [5.0, 1], [5.45, 1], [5.8, 0]]);
   const irisK = keyed([[2.75, 0], [3.3, 1], [3.7, 1], [4.2, 0]]);
+  const screenK = keyed([[5.5, 0], [5.9, 1], [6.5, 1], [6.9, 0.35], [9.6, 0.35], [10.2, 0]]);
   const weights = {};
 
   let sTarget = 0, s = 0;
@@ -182,10 +190,10 @@ async function main() {
     const rfl = rfLightK(s);
     for (const m of rf.lightMats) { m.uniforms.uTime.value = time; m.uniforms.uOpacity.value = rfl; }
     rf.mirrorPivot.rotation.y = -Math.PI / 4 + Math.sin(time * 1.4) * 0.05 * rfl;
-    gears.gears.forEach((g) => { g.rotation.y = s * 2.2 * g.userData.ratio; });
     const shutterActive = Math.max(0, 1 - Math.abs(s - 7) * 2.2);
     shutter.setPhase(shutterActive > 0.05 ? (time * 0.45) % 1 : 0);
-    shutter.gears.forEach((g) => { g.rotation.y = time * 1.5 * g.userData.ratio * shutterActive; });
+    shutter.gears.forEach((g) => { g.rotation.y = time * 2.5 * g.userData.ratio * shutterActive; });
+    M.screen.emissiveIntensity = screenK(s) * 1.4;
 
     // Camera: interpolate orbit keys, plus an opening dolly and pointer parallax.
     const i0 = Math.min(N - 2, Math.floor(s)), t = ease(Math.min(1, s - i0));

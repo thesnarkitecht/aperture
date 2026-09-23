@@ -100,19 +100,45 @@ export function createMaterials() {
     sheen: 0.6, sheenRoughness: 0.45, sheenColor: new THREE.Color(0x3a3a3a),
   });
   M.pcb = new THREE.MeshPhysicalMaterial({
-    name: 'pcb', map: T.pcbTexture(), metalness: 0.1, roughness: 0.4,
+    name: 'pcb', map: T.pcbTexture({ labels: [['FL-11  R2', 0.06, 0.09]] }), metalness: 0.1, roughness: 0.4,
     clearcoat: 0.8, clearcoatRoughness: 0.15,
+  });
+  M.pcbBlack = new THREE.MeshPhysicalMaterial({
+    name: 'pcbBlack', map: T.pcbTexture({ base: '#101112', trace: 'rgba(170,150,90,0.55)', seed: 41, labels: [['M11 MAIN  REV 04', 0.05, 0.07], ['U1', 0.46, 0.3], ['J3', 0.8, 0.8]] }),
+    metalness: 0.15, roughness: 0.35, clearcoat: 0.9, clearcoatRoughness: 0.12,
   });
   M.chip = new THREE.MeshPhysicalMaterial({ name: 'chip', color: 0x111112, roughness: 0.5 });
   M.gold = new THREE.MeshPhysicalMaterial({ name: 'gold', color: 0xf0c060, metalness: 1, roughness: 0.2 });
-  M.film = new THREE.MeshPhysicalMaterial({
-    name: 'film', map: T.filmStrip(), alphaTest: 0.5, side: THREE.DoubleSide,
-    roughness: 0.18, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05,
-    emissive: 0x2a0e02,
+  M.flex = new THREE.MeshPhysicalMaterial({ name: 'flex', color: 0xc4741c, roughness: 0.35, clearcoat: 0.7, side: THREE.DoubleSide, transmission: 0.25, thickness: 0.2 });
+  M.ceramic = new THREE.MeshPhysicalMaterial({ name: 'ceramic', map: T.sensorPackage(), roughness: 0.55, metalness: 0.1, clearcoat: 0.3 });
+  // Sensor die: micro-lens array + colour filter array read as a shifting rainbow sheen.
+  M.sensorDie = new THREE.MeshPhysicalMaterial({
+    name: 'sensorDie', color: 0x0e0b16, metalness: 0.65, roughness: 0.1,
+    normalMap: T.microlensNormal(), normalScale: new THREE.Vector2(0.35, 0.35),
+    iridescence: 1, iridescenceIOR: 1.95, iridescenceThicknessRange: [180, 950],
+    anisotropy: 0.4, clearcoat: 1, clearcoatRoughness: 0.03,
   });
-  M.canister = new THREE.MeshPhysicalMaterial({
-    name: 'canister', map: T.canisterLabel(), metalness: 0.35, roughness: 0.35, clearcoat: 0.6,
+  M.sensorDie.normalMap.repeat.set(1 / 1.2, 1 / 1.2);
+  // IR-cut cover glass: cyan body, magenta/green dichroic reflections.
+  M.irGlass = new THREE.MeshPhysicalMaterial({
+    name: 'irGlass', color: 0xc9ecff, metalness: 0, roughness: 0.02, transmission: 1, thickness: 1, ior: 1.52,
+    iridescence: 1, iridescenceIOR: 2.1, iridescenceThicknessRange: [320, 720],
+    attenuationColor: new THREE.Color(0x9fdcff), attenuationDistance: 6, specularIntensity: 1,
   });
+  M.aluminium = new THREE.MeshPhysicalMaterial({
+    name: 'aluminium', color: 0xb9bcc0, metalness: 1, roughness: 0.38, roughnessMap: brushed,
+  });
+  M.rearCover = new THREE.MeshPhysicalMaterial({
+    name: 'rearCover', color: 0x0d0d0e, metalness: 0.2, roughness: 0.55, clearcoat: 0.25, clearcoatRoughness: 0.4,
+  });
+  M.screen = new THREE.MeshPhysicalMaterial({
+    name: 'screen', color: 0x020203, metalness: 0, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.01,
+    emissive: 0xffffff, emissiveMap: T.screenImage(), emissiveIntensity: 0,
+  });
+  M.battery = new THREE.MeshPhysicalMaterial({
+    name: 'battery', color: 0x151516, metalness: 0.1, roughness: 0.45, clearcoat: 0.4, clearcoatRoughness: 0.3,
+  });
+  M.ledLens = new THREE.MeshPhysicalMaterial({ name: 'ledLens', color: 0x5a0a08, roughness: 0.05, clearcoat: 1, emissive: 0x200000 });
   M.white = new THREE.MeshPhysicalMaterial({ name: 'white', color: 0xf2f0ea, roughness: 0.4 });
   M.frameline = new THREE.MeshBasicMaterial({
     name: 'frameline', color: new THREE.Color(1, 0.97, 0.9).multiplyScalar(4),
@@ -125,7 +151,8 @@ export function createMaterials() {
   const finishes = {
     // Non-zero clearcoat/anisotropy on both keeps one shader program, so switching never recompiles.
     chrome: { color: 0xdcdcd8, metalness: 1, roughness: 0.17, clearcoat: 0.02, anisotropy: 0.35 },
-    black: { color: 0x080808, metalness: 0.0, roughness: 0.3, clearcoat: 1, anisotropy: 0.02 },
+    // Black M11: matte-coated aluminium top cover.
+    black: { color: 0x0a0a0a, metalness: 0.15, roughness: 0.48, clearcoat: 0.25, anisotropy: 0.02 },
   };
   M.setFinish = (name) => {
     const f = finishes[name];

@@ -1,11 +1,28 @@
-// Top plate: windows, red dot, engraving, dials, levers and the gear train below.
+// M11 top plate: windows, red dot, engravings, ISO dial, shutter-speed dial,
+// release with main switch, function button, hot shoe, eyepiece, thumbwheel.
 import * as THREE from 'three';
 import { D } from './dims.js';
 import * as G from '../core/geometry.js';
 import * as T from '../core/textures.js';
 
 const { mesh } = G;
-const TAU = Math.PI * 2;
+
+// Layout (mm). x > 0 is the photographer's left (ISO-dial end).
+export const L = {
+  vf: { x: 43, w: 22, h: 13.5 },       // viewfinder window (front, viewer's right)
+  rf: { x: -46.5, w: 10.5, h: 10 },    // rangefinder window (front, viewer's left)
+  dot: { x: -28.5, r: 5.6 },           // red dot
+  bright: { x: 15, r: 1.5 },           // front brightness sensor (frame-line LEDs / metering)
+  timerLed: { x: 22.5, r: 1.1 },       // self-timer LED
+  lcdSensor: { x: 24 },                // rear brightness sensor for the LCD
+  iso: { x: 47, z: -0.5, r: 10.8 },    // ISO dial (photographer's left)
+  shoe: { x: 7, z: -0.5 },
+  speed: { x: -24.5, z: 1.2, r: 10.8 },
+  release: { x: -47.5, z: 1.5 },
+  fn: { x: -36, z: 11.2 },             // top function button, ahead of the release
+  eyepiece: { x: 43 },
+  thumb: { x: -52, y: 24 },            // thumbwheel on the rear of the plate
+};
 
 function windowUnit(M, w, h, glassMat, { bezel = 1.1, depth = 1.2, r = 1.4 } = {}) {
   const g = new THREE.Group();
@@ -17,14 +34,36 @@ function windowUnit(M, w, h, glassMat, { bezel = 1.1, depth = 1.2, r = 1.4 } = {
   const glass = mesh(G.extrudeForward(G.roundedRectShape(w, h, r), 0.6), glassMat);
   glass.position.z = depth - 1.0;
   g.add(glass);
+  // Blackened interior so the window has depth.
+  const well = mesh(G.extrudeForward(G.roundedRectShape(w - 0.2, h - 0.2, r), 3), M.matteBlack, { cast: false });
+  well.position.z = depth - 4.2;
+  g.add(well);
   return g;
 }
 
-function decalPlane(w, h, texture, { opacity = 1 } = {}) {
+function decalPlane(w, h, texture, { opacity = 1, metal = false } = {}) {
   return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshPhysicalMaterial({
-    map: texture, transparent: true, opacity, depthWrite: false, roughness: 0.6, metalness: 0,
+    map: texture, transparent: true, opacity, depthWrite: false, roughness: metal ? 0.3 : 0.6, metalness: metal ? 0.6 : 0,
     polygonOffset: true, polygonOffsetFactor: -4,
   }));
+}
+
+// Knurled dial: body with a turned top carrying engraved markings.
+function dial(M, { r, h, ridges, items, rings = [], base = '#c9c9c5', ink = '#141414', knurlDepth = 0.4 }) {
+  const g = new THREE.Group();
+  const bodyM = mesh(G.ridgedRingZ({ rOuter: r, rInner: 0.01, z0: 0, z1: h, ridges, depth: knurlDepth, chamfer: 0.5 }), M.body);
+  bodyM.rotation.x = -Math.PI / 2;
+  g.add(bodyM);
+  const topMat = new THREE.MeshPhysicalMaterial({
+    map: T.polarText({ size: 1024, base, items: items.map((it) => ({ color: ink, weight: 600, ...it })), rings }),
+    metalness: 0.9, roughness: 0.28, normalMap: M.chromeTurned.normalMap, normalScale: new THREE.Vector2(0.15, 0.15),
+  });
+  const face = mesh(new THREE.CircleGeometry(r - 0.6, 96), topMat);
+  face.rotation.x = -Math.PI / 2;
+  face.position.y = h + 0.01;
+  g.add(face);
+  g.userData.topMat = topMat;
+  return g;
 }
 
 export function buildTopPlate(M, rig) {
@@ -32,31 +71,44 @@ export function buildTopPlate(M, rig) {
   top.name = 'topPlate';
   const H = D.topY1 - D.bodyY1;
 
-  const shell = mesh(G.extrudeUp(G.roundedRectShape(D.W, D.plateD, D.plateD / 2), H, 1.9, 64, 5), M.body);
+  const shell = mesh(G.extrudeUp(G.roundedRectShape(D.W, D.plateD, D.plateD / 2), H, 2.0, 72, 6), M.body);
   shell.position.y = D.bodyY1;
   top.add(shell);
   const fz = D.plateD / 2; // front face z
   const Y = D.winY;
+  const y0 = D.topY1 - 0.2;
 
-  // Windows (viewer's right → left): viewfinder, frame-line illuminator, rangefinder.
-  const vf = windowUnit(M, 21, 13, M.glassDark);
-  vf.position.set(43, Y, fz - 0.6);
+  // ---- Front: viewfinder window, rangefinder window, red dot, LED sensor ----
+  const vf = windowUnit(M, L.vf.w, L.vf.h, M.glassDark);
+  vf.position.set(L.vf.x, Y, fz - 0.6);
   top.add(vf);
-  const illum = windowUnit(M, 13, 8.5, M.frosted, { r: 0.8 });
-  illum.position.set(19, Y, fz - 0.6);
-  top.add(illum);
-  const rfw = windowUnit(M, 10.5, 9.5, M.glassDark, { r: 1 });
-  rfw.position.set(-47, Y, fz - 0.6);
+  const rfw = windowUnit(M, L.rf.w, L.rf.h, M.glassDark, { r: 1 });
+  rfw.position.set(L.rf.x, Y, fz - 0.6);
   top.add(rfw);
-  rig.anchor(vf, 'vfWindow', [0, 6.5, 1]);
-  rig.anchor(rfw, 'rfWindow', [0, 5, 1]);
-  rig.anchor(illum, 'illum', [0, -4.5, 1]);
+  // Small round windows: brightness sensor (frosted) and self-timer LED (red).
+  const pinWindow = (r, glassMat) => {
+    const w = new THREE.Group();
+    w.add(mesh(G.latheZ([[0, 0], [r + 0.7, 0], [r + 0.7, 0.4], [r, 0.6], [0, 0.6]], 32), M.chromePolished));
+    const gl = mesh(new THREE.CircleGeometry(r, 32), glassMat);
+    gl.position.z = 0.61;
+    w.add(gl);
+    return w;
+  };
+  const bright = pinWindow(L.bright.r, M.frosted);
+  bright.position.set(L.bright.x, Y - 1.5, fz - 0.3);
+  top.add(bright);
+  const timerLed = pinWindow(L.timerLed.r, M.ledLens);
+  timerLed.position.set(L.timerLed.x, Y - 1.5, fz - 0.3);
+  top.add(timerLed);
+  const lcdSensor = pinWindow(1.1, M.glassDark);
+  lcdSensor.rotation.y = Math.PI;
+  lcdSensor.position.set(L.lcdSensor.x, Y - 2, -fz + 0.3);
+  top.add(lcdSensor);
 
-  // Red dot.
   const dot = new THREE.Group();
   dot.name = 'redDot';
-  dot.add(mesh(G.latheZ([[0, 0], [5.4, 0], [5.4, 0.5], [5.1, 0.9], [0, 1.05, 1]], 64), M.redEnamel));
-  const script = decalPlane(8.6, 4.3, T.decal(512, 256, (ctx, w, h, f) => {
+  dot.add(mesh(G.latheZ([[0, 0], [L.dot.r, 0], [L.dot.r, 0.5], [L.dot.r - 0.3, 0.9], [0, 1.05, 1]], 64), M.redEnamel));
+  const script = decalPlane(L.dot.r * 1.6, L.dot.r * 0.8, T.decal(512, 256, (ctx, w, h, f) => {
     ctx.fillStyle = '#fbf8f2';
     ctx.font = `italic 400 190px ${f.FONT_SERIF}`;
     ctx.textAlign = 'center';
@@ -65,221 +117,197 @@ export function buildTopPlate(M, rig) {
   }));
   script.position.z = 1.07;
   dot.add(script);
-  dot.position.set(-29, Y + 0.5, fz - 0.3);
+  dot.position.set(L.dot.x, Y + 0.5, fz - 0.3);
   top.add(dot);
-  rig.anchor(dot, 'redDot', [0, 5.5, 1]);
 
-  // Engraving on the top face (reads from the front).
-  const engraving = decalPlane(18, 4.5, T.decal(1024, 256, (ctx, w, h, f) => {
-    ctx.fillStyle = 'rgba(18,18,18,0.82)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `italic 400 120px ${f.FONT_SERIF}`;
-    ctx.fillText('Leica  M6', w / 2, 92);
-    ctx.font = `500 40px ${f.FONT_SANS}`;
-    ctx.fillText('Nº 1 954 207   ·   GERMANY', w / 2, 200);
-  }));
-  engraving.rotation.x = -Math.PI / 2;
-  engraving.position.set(27, D.topY1 + 0.02, 7.5);
-  top.add(engraving);
-
-  // Eyepiece on the rear.
-  const eye = windowUnit(M, 11, 9.5, M.glassDark, { bezel: 1.6, depth: 1.8, r: 2.2 });
+  // ---- Rear: eyepiece and thumbwheel -------------------------------------------
+  const eye = new THREE.Group();
+  const eyeRing = mesh(G.latheZ([[5.2, 0], [7.4, 0], [7.6, 0.4], [7.6, 2.4], [7.2, 2.9], [5.8, 2.9], [5.2, 2.2]], 64), M.body);
+  eye.add(eyeRing);
+  // Fine accessory thread inside the eyepiece ring.
+  for (let i = 0; i < 5; i++) {
+    const t = mesh(new THREE.TorusGeometry(5.3, 0.12, 6, 64), M.steel, { cast: false });
+    t.position.z = 0.5 + i * 0.35;
+    eye.add(t);
+  }
+  const eyeGlass = mesh(new THREE.CircleGeometry(5.2, 48), M.glassDark);
+  eyeGlass.position.z = 0.4;
+  eye.add(eyeGlass);
   eye.rotation.y = Math.PI;
-  eye.position.set(43, Y, -fz + 0.6);
+  eye.position.set(L.eyepiece.x, Y, -fz + 0.3);
   top.add(eye);
-  rig.anchor(eye, 'eyepiece', [0, 6, 1]);
 
-  // ---- Controls on the top face -------------------------------------------
-  const y0 = D.topY1 - 0.2;
+  const thumb = new THREE.Group();
+  const wheel = mesh(G.ridgedRingZ({ rOuter: 7.5, rInner: 1.5, z0: -2.6, z1: 2.6, ridges: 44, depth: 0.55, chamfer: 0.4 }), M.anodized);
+  wheel.rotation.y = Math.PI / 2;
+  thumb.add(wheel);
+  thumb.position.set(L.thumb.x, L.thumb.y, -fz + 3.4);
+  top.add(thumb);
 
-  // Rewind knob with fold-out crank.
-  const rewind = new THREE.Group();
-  rewind.name = 'rewind';
-  const rwCollar = mesh(G.latheY([[0, 0], [10.4, 0], [10.4, 1.6], [9.6, 2.2], [0, 2.2]], 96), M.body);
-  rewind.add(rwCollar);
-  const rwKnob = new THREE.Group();
-  const drum = mesh(G.ridgedRingZ({ rOuter: 9.4, rInner: 0.01, z0: 0, z1: 6, ridges: 56, depth: 0.45, chamfer: 0.6 }), M.body);
-  drum.rotation.x = -Math.PI / 2;
-  rwKnob.add(drum);
-  const cap = mesh(new THREE.CircleGeometry(8.8, 64), M.chromeTurned);
-  cap.rotation.x = -Math.PI / 2;
-  cap.position.y = 6.01;
-  rwKnob.add(cap);
-  rwKnob.position.y = 2.2;
-  rewind.add(rwKnob);
-  const crank = new THREE.Group();
-  const crankArm = mesh(G.extrudeUp(G.roundedRectShape(15, 4.2, 2.1, 5.5, 0), 1.4, 0.4), M.body);
-  crank.add(crankArm);
-  const crankHub = mesh(G.latheY([[0, 0], [3.2, 0], [3.2, 2.2], [2.6, 2.8], [0, 2.8]], 32), M.chromePolished);
-  crank.add(crankHub);
-  const crankKnob = mesh(G.latheY([[0, 0], [2.3, 0], [2.3, 4.2], [1.8, 5], [0, 5.1, 1]], 32), M.rubber);
-  crankKnob.position.set(11.5, 1.4, 0);
-  crank.add(crankKnob);
-  crank.position.y = 8.2;
-  crank.rotation.y = -0.6;
-  rewind.add(crank);
-  rewind.position.set(47, y0, 0);
-  top.add(rewind);
-  rig.add(rwKnob, 'top', [0, 12, 0]);
-  rig.add(crank, 'top', [0, 24, 0], [0, 0.8, 0]);
-  rig.anchor(crank, 'rewind', [11.5, 6, 0]);
+  // ---- ISO dial (pull up to turn) -------------------------------------------------
+  const isoVals = ['A', '64', '200', '400', '800', '1600', '3200', '6400', 'M'];
+  const iso = new THREE.Group();
+  iso.name = 'isoDial';
+  const isoCollar = mesh(G.latheY([[0, 0], [L.iso.r + 0.3, 0], [L.iso.r + 0.3, 1.4], [L.iso.r - 0.4, 2.0], [0, 2.0]], 96), M.body);
+  iso.add(isoCollar);
+  const isoDial = dial(M, {
+    r: L.iso.r, h: 5.2, ridges: 60,
+    items: isoVals.map((t, i) => ({ text: t, angle: Math.PI + (i - 4) * 0.36, r: 0.72, size: t.length > 3 ? 64 : 80 })),
+    rings: [{ r: 0.95, w: 6, color: '#a3a39e' }],
+  });
+  isoDial.position.y = 2.0;
+  iso.add(isoDial);
+  // Red band on the spindle: visible only when the dial is pulled up to unlock.
+  const redBand = mesh(G.latheY([[4.4, 0], [4.6, 0], [4.6, 1.2], [4.4, 1.2]], 48), M.redEnamel);
+  redBand.position.y = 0.8;
+  iso.add(redBand);
+  const isoSpindle = mesh(G.latheY([[0, -1], [4.3, -1], [4.3, 2.2], [0, 2.2]], 48), M.steel);
+  iso.add(isoSpindle);
+  // Locking pin and spring revealed when the dial lifts.
+  const isoSpring = mesh(G.springGeometry(3.2, 0.25, 5, 2.4), M.steel);
+  isoSpring.position.y = -0.4;
+  iso.add(isoSpring);
+  iso.position.set(L.iso.x, y0, L.iso.z);
+  top.add(iso);
+  rig.add(isoDial, 'top', [0, 16, 0]);
 
-  // Accessory (hot) shoe.
+  // ---- Hot shoe with centre and auxiliary contacts ---------------------------------
   const shoe = new THREE.Group();
   shoe.name = 'hotShoe';
-  shoe.add(mesh(G.extrudeUp(G.roundedRectShape(20, 19, 1.2), 1.2, 0.3), M.body));
-  for (const s of [1, -1]) {
+  shoe.add(mesh(G.extrudeUp(G.roundedRectShape(20, 19.5, 1.2), 1.2, 0.3), M.body));
+  for (const sgn of [1, -1]) {
     const rail = new THREE.Shape();
     rail.moveTo(0, 0); rail.lineTo(2.6, 0); rail.lineTo(2.6, 3.4); rail.lineTo(-1.6, 3.4); rail.lineTo(-1.6, 2.6); rail.lineTo(0, 2.6); rail.closePath();
-    const rg = G.extrudeForward(rail, 19, 0.2, 4, 1);
-    const rm = mesh(rg, M.chromePolished);
-    rm.position.set(s * 9.9, 0.8, -9.5);
-    if (s < 0) { rm.scale.x = -1; }
+    const rm = mesh(G.extrudeForward(rail, 19.5, 0.2, 4, 1), M.chromePolished);
+    rm.position.set(sgn * 9.9, 0.8, -9.75);
+    if (sgn < 0) rm.scale.x = -1;
     shoe.add(rm);
   }
   const contact = mesh(G.latheY([[0, 0], [2.4, 0], [2.4, 0.9], [1.4, 1.1], [0, 1.1]], 32), M.gold);
-  contact.position.y = 1.2;
+  contact.position.set(0, 1.2, 0.5);
   shoe.add(contact);
-  const spring = mesh(new THREE.BoxGeometry(12, 0.3, 3), M.steel);
-  spring.position.set(0, 1.4, -6.5);
-  shoe.add(spring);
-  shoe.position.set(7, y0, -1);
+  // Auxiliary contact strip (for flash and Visoflex) at the rear of the shoe.
+  const aux = mesh(new THREE.BoxGeometry(9, 0.5, 2.2), M.chip);
+  aux.position.set(0, 1.45, -7.6);
+  shoe.add(aux);
+  for (let i = 0; i < 5; i++) {
+    const c = mesh(new THREE.BoxGeometry(0.9, 0.2, 1.4), M.gold, { cast: false });
+    c.position.set(-3.2 + i * 1.6, 1.75, -7.6);
+    shoe.add(c);
+  }
+  // Serial number engraved on the shoe rail.
+  const serial = decalPlane(14, 1.6, T.decal(700, 80, (ctx, w, h, f) => {
+    ctx.fillStyle = 'rgba(25,25,25,0.8)';
+    ctx.font = `600 54px ${f.FONT_SANS}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('5 614 207', w / 2, h / 2 + 3);
+  }), { metal: true });
+  serial.rotation.y = Math.PI / 2;
+  serial.position.set(9.9 + 2.61, 0.8 + 1.7, 0);
+  shoe.add(serial);
+  const leaf = mesh(new THREE.BoxGeometry(12, 0.3, 2.6), M.steel);
+  leaf.position.set(0, 1.4, 6.8);
+  shoe.add(leaf);
+  shoe.position.set(L.shoe.x, y0, L.shoe.z);
   top.add(shoe);
   rig.add(shoe, 'top', [0, 12, 0]);
-  rig.anchor(shoe, 'hotShoe', [0, 4, 9]);
 
-  // Shutter-speed dial with its spindle.
-  const speed = new THREE.Group();
+  // ---- Shutter-speed dial ------------------------------------------------------------
+  const speeds = ['A', '8s', '4s', '2s', '1s', '2', '4', '8', '15', '30', '60', '125', '250', '500', '1000', '2000', '4000', 'B'];
+  const speed = dial(M, {
+    r: L.speed.r, h: 5.4, ridges: 72,
+    items: speeds.map((t, i) => ({
+      text: t, angle: Math.PI - 2.75 + i * (5.5 / (speeds.length - 1)), r: 0.76,
+      size: t.length >= 4 ? 50 : t.length === 3 ? 58 : 66, color: t === 'A' ? '#c41a1a' : '#141414',
+    })).concat([{ text: '⚡', angle: Math.PI - 2.75 + 11.5 * (5.5 / (speeds.length - 1)), r: 0.55, size: 44, color: '#c41a1a' }]),
+    rings: [{ r: 0.95, w: 6, color: '#a3a39e' }],
+  });
   speed.name = 'speedDial';
-  const dialBody = mesh(G.ridgedRingZ({ rOuter: 10.6, rInner: 0.01, z0: 0, z1: 5.2, ridges: 72, depth: 0.4, chamfer: 0.5 }), M.body);
-  dialBody.rotation.x = -Math.PI / 2;
-  speed.add(dialBody);
-  const speeds = ['B', '1', '2', '4', '8', '15', '30', '60', '125', '250', '500', '1000'];
-  const dialTop = mesh(new THREE.CircleGeometry(10.0, 96), new THREE.MeshPhysicalMaterial({
-    map: T.polarText({
-      size: 1024, base: '#c9c9c5',
-      items: speeds.map((t, i) => ({ text: t, angle: -2.2 + i * 0.4, r: 0.74, size: t.length > 3 ? 70 : 86, weight: 600, color: '#141414' }))
-        .concat([{ text: '⚡', angle: -2.2 + 7.6 * 0.4, r: 0.52, size: 60, color: '#c41a1a' }]),
-      rings: [{ r: 0.96, w: 8, color: '#9d9d98' }],
-    }),
-    metalness: 0.9, roughness: 0.3, normalMap: M.chromeTurned.normalMap, normalScale: new THREE.Vector2(0.15, 0.15),
-  }));
-  dialTop.rotation.x = -Math.PI / 2;
-  dialTop.position.y = 5.21;
-  speed.add(dialTop);
-  M.dialTop = dialTop.material;
-  const spindle = mesh(G.cylZ(1.6, -12, 0, { segments: 24 }), M.steel);
+  const spindle = mesh(G.cylZ(1.6, -10, 0, { segments: 24 }), M.steel);
   spindle.rotation.x = -Math.PI / 2;
   speed.add(spindle);
-  const cam = mesh(G.gearGeometry({ teeth: 30, module: 0.45, h: 1.2, bore: 1.6, spokes: 5 }), M.brass);
-  cam.position.y = -9;
-  speed.add(cam);
-  speed.position.set(-25, y0, 1.5);
+  // Magnetic encoder disc underneath (reads the dial position electronically).
+  const encoder = mesh(G.latheY([[1.6, 0], [8, 0], [8, 0.8], [1.6, 0.8]], 64), M.chip);
+  encoder.position.y = -6;
+  speed.add(encoder);
+  speed.position.set(L.speed.x, y0, L.speed.z);
   top.add(speed);
-  rig.add(speed, 'top', [0, 26, 0]);
-  rig.anchor(speed, 'speedDial', [-10.6, 3, 0]);
+  rig.add(speed, 'top', [0, 24, 0]);
 
-  // Advance lever, concentric with the shutter release.
-  const adv = new THREE.Group();
-  adv.name = 'advance';
-  adv.add(mesh(G.latheY([[0, 0], [8.4, 0], [8.4, 1.8], [7.8, 2.4], [0, 2.4]], 64), M.body));
-  const lever = new THREE.Group();
-  const ls = new THREE.Shape();
-  ls.moveTo(0, -4.5);
-  ls.lineTo(33, -2.4);
-  ls.quadraticCurveTo(40, -2.2, 40, 1.4);
-  ls.quadraticCurveTo(39.5, 3.2, 33, 3.0);
-  ls.lineTo(0, 4.5);
-  ls.absarc(0, 0, 4.5, Math.PI / 2, -Math.PI / 2, false);
-  const leverArm = mesh(G.extrudeUp(ls, 1.8, 0.5, 24, 3), M.body);
-  lever.add(leverArm);
-  const tip = mesh(G.latheY([[0, 0], [2.6, 0], [2.6, 5.5], [2.0, 6.4], [0, 6.5, 1]], 32), M.rubber);
-  tip.position.set(37, 1.6, 0.4);
-  lever.add(tip);
-  lever.position.y = 2.6;
-  lever.rotation.y = 0.38;
-  adv.add(lever);
-  const counter = mesh(G.latheY([[0, 0], [3.4, 0], [3.4, 0.8], [0, 1.9, 1]], 48), M.glassDark);
-  counter.position.set(12, 0, -8.5);
-  adv.add(counter);
-  adv.position.set(-47, y0, 1);
-  top.add(adv);
-  rig.add(lever, 'top', [0, 14, 0], [0, -0.95, 0]);
-  rig.anchor(tip, 'advance', [0, 6, 0]);
-
-  // Shutter release: threaded collar + button (sits on the lever hub).
+  // ---- Shutter release with main switch --------------------------------------------
   const rel = new THREE.Group();
   rel.name = 'release';
+  // Main-switch ring with a forward-pointing lever.
+  const sw1 = new THREE.Group();
+  sw1.add(mesh(G.latheY([[4.2, 0], [8.2, 0], [8.2, 1.6], [7.6, 2.2], [4.2, 2.2]], 64), M.body));
+  const lever = mesh(G.extrudeUp(G.roundedRectShape(5, 6, 2.2, 0, -8.6), 1.8, 0.5), M.body);
+  sw1.add(lever);
+  const leverGrip = mesh(new THREE.BoxGeometry(3.6, 0.3, 0.3), M.matteBlack, { cast: false });
+  leverGrip.position.set(0, 1.85, 10.6);
+  sw1.add(leverGrip);
+  sw1.rotation.y = -0.25;
+  rel.add(sw1);
+  // Threaded collar (cable release) and button.
   const thread = [];
-  for (let i = 0; i <= 12; i++) thread.push([i % 2 ? 3.6 : 3.95, 0.35 * i, 1]);
-  const collar = mesh(G.latheY([[0, 0], [3.95, 0], ...thread, [3.4, 4.6], [0, 4.6]], 64), M.chromePolished);
+  for (let i = 0; i <= 12; i++) thread.push([i % 2 ? 3.6 : 3.95, 2.2 + 0.32 * i, 1]);
+  const collar = mesh(G.latheY([[0, 2.2], [3.95, 2.2], ...thread, [3.4, 6.6], [0, 6.6]], 64), M.chromePolished);
   rel.add(collar);
-  const button = mesh(G.latheY([[0, 0], [2.7, 0], [2.7, 1.2], [2.3, 2.1, 1], [1.2, 2.5, 1], [0, 2.6, 1]], 48), M.chromePolished);
-  button.position.y = 4.6;
+  const button = new THREE.Group();
+  button.add(mesh(G.latheY([[0, 0], [2.7, 0], [2.7, 1.2], [2.3, 2.1, 1], [1.2, 2.5, 1], [0, 2.6, 1]], 48), M.chromePolished));
+  const cableHole = mesh(new THREE.CircleGeometry(0.9, 24), M.matteBlack, { cast: false });
+  cableHole.rotation.x = -Math.PI / 2;
+  cableHole.position.y = 2.61;
+  button.add(cableHole);
+  button.position.y = 6.6;
   rel.add(button);
-  const pin = mesh(G.cylZ(0.8, -14, 0, { segments: 16 }), M.steel);
+  const pin = mesh(G.cylZ(0.8, -12, 0, { segments: 16 }), M.steel);
   pin.rotation.x = -Math.PI / 2;
   rel.add(pin);
-  rel.position.set(-47, y0 + 4.4, 1);
+  rel.position.set(L.release.x, y0, L.release.z);
   top.add(rel);
+  // Main switch positions engraved beside the collar: OFF · ON.
+  const swMarks = decalPlane(26, 26, T.polarText({
+    size: 1024,
+    items: [['OFF', Math.PI - 0.55], ['ON', Math.PI + 0.45]].map(([t, a]) => ({ text: t, angle: a, r: 0.8, size: 78, color: 'rgba(20,20,20,0.85)', weight: 700 })),
+  }), { metal: true });
+  swMarks.rotation.x = -Math.PI / 2;
+  swMarks.position.set(L.release.x, D.topY1 + 0.02, L.release.z);
+  top.add(swMarks);
   rig.add(rel, 'top', [0, 30, 0]);
-  rig.add(button, 'top', [0, 8, 0]);
-  rig.anchor(button, 'release', [0, 3, 0]);
+  rig.add(button, 'top', [0, 9, 0]);
+  rig.add(sw1, 'top', [0, 4, 0], [0, 0.4, 0]);
 
-  // Screws on the plate ends.
-  for (const x of [-60, 60]) {
-    const s = G.screw(M, 0.9);
-    s.position.set(x, D.topY1 - 0.35, -9);
+  // ---- Function button -----------------------------------------------------------------
+  const fn = new THREE.Group();
+  fn.add(mesh(G.latheY([[0, 0], [3.4, 0], [3.4, 0.5], [3.0, 0.7], [0, 0.7]], 48), M.body));
+  fn.add(mesh(G.latheY([[0, 0.7], [2.6, 0.7], [2.6, 1.9], [2.2, 2.4, 1], [0, 2.5, 1]], 48), M.chromePolished));
+  fn.position.set(L.fn.x, y0, L.fn.z);
+  top.add(fn);
+  rig.add(fn, 'top', [0, 18, 0]);
+
+  // Screws at the plate ends.
+  for (const x of [-62, 62]) {
+    const s = G.screw(M, 0.8);
+    s.position.set(x, D.topY1 - 0.4, -9.5);
     top.add(s);
   }
+
+  // Dial-encoder flex PCB under the top plate (revealed when it lifts).
+  const flex = new THREE.Group();
+  const fb = mesh(G.extrudeUp(G.roundedRectShape(112, 18, 3, -2, 0), 0.4, 0.1), M.flex);
+  flex.add(fb);
+  for (const x of [L.iso.x, L.speed.x, L.release.x]) {
+    const hall = mesh(new THREE.BoxGeometry(4, 1, 4), M.chip);
+    hall.position.set(x, 0.9, 0);
+    flex.add(hall);
+  }
+  flex.position.y = D.bodyY1 + 0.3;
+  top.add(flex);
+  rig.add(flex, 'top', [0, -62, 0]);
 
   rig.add(top, 'top', [0, 72, 0]);
   rig.add(top, 'topHigh', [0, 42, 0]);
   rig.floaty(top, 1.6, 0.45);
-  rig.anchor(shell, 'topPlate', [-62, D.topY1 - 3, 8]);
-  return { top };
-}
-
-// Advance / transport gear train that lives under the top plate.
-export function buildGearTrain(M, rig) {
-  const g = new THREE.Group();
-  g.name = 'gearTrain';
-  const y = D.bodyY1 + 0.2;
-  const specs = [
-    { teeth: 40, m: 0.5, x: -47, z: 1, h: 1.6, spokes: 5, dir: 1 },
-    { teeth: 20, m: 0.5, x: -47 + 15, z: 1 - 0.1, h: 1.6, spokes: 0, dir: -1 },
-    { teeth: 32, m: 0.5, x: -47 + 15 + 13 * Math.cos(0.6), z: 1 + 13 * Math.sin(0.6), h: 1.4, spokes: 4, dir: 1 },
-    { teeth: 14, m: 0.5, x: -47 + 15, z: 1 - 0.1, h: 1.2, spokes: 0, dir: -1, yo: 1.8, ratio: -2 },
-  ];
-  const gears = [];
-  for (const s of specs) {
-    const gear = mesh(G.gearGeometry({ teeth: s.teeth, module: s.m, h: s.h, bore: 0.9, spokes: s.spokes }), M.brass);
-    gear.position.set(s.x, y + (s.yo || 0), s.z);
-    gear.userData.ratio = s.ratio ?? s.dir * 40 / s.teeth;
-    g.add(gear);
-    gears.push(gear);
-    const arbor = mesh(G.cylZ(0.9, 0, 5, { segments: 16 }), M.steel);
-    arbor.rotation.x = -Math.PI / 2;
-    arbor.position.set(s.x, y - 1, s.z);
-    g.add(arbor);
-  }
-  // Mainspring and bridge.
-  const spring = mesh(G.springGeometry(2.4, 0.3, 7, 11), M.blueSteel);
-  spring.rotation.z = Math.PI / 2;
-  spring.position.set(-12, y + 3, -8);
-  g.add(spring);
-  const bridge = mesh(G.extrudeUp(G.roundedRectShape(34, 7, 3.5, -34, -9), 1.2, 0.3), M.steel);
-  bridge.position.y = y + 3.2;
-  g.add(bridge);
-  for (const x of [-48, -20]) {
-    const s = G.screw(M, 1.0);
-    s.position.set(x, y + 4.4, -9);
-    g.add(s);
-  }
-  rig.add(g, 'top', [0, 34, 0]);
-  rig.add(g, 'topHigh', [0, 6, 0]);
-  rig.floaty(g, 1.2, 0.7);
-  rig.anchor(gears[2], 'gears', [0, 1, 8]);
-  return { group: g, gears };
+  return { top, isoDial, speed };
 }

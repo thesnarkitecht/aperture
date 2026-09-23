@@ -275,6 +275,20 @@ export function scaleUV(g, su, sv = su) {
   return g;
 }
 
+// Planar UVs across a w×h rectangle centred on the origin (x/y), so a 0..1
+// texture spans exactly one face. flipU for faces seen from behind (-Z).
+export function planarUV(g, w, h, flipU = false) {
+  const p = g.attributes.position;
+  const uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) {
+    const u = p.getX(i) / w + 0.5;
+    uv[i * 2] = flipU ? 1 - u : u;
+    uv[i * 2 + 1] = p.getY(i) / h + 0.5;
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+
 // Box-projected UVs in millimetres; good for leatherette on arbitrary shells.
 export function boxUV(g) {
   if (!g.attributes.normal) g.computeVertexNormals();

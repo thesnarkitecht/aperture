@@ -1,18 +1,18 @@
 # Aperture — Anatomy of a Rangefinder
 
-A scroll-driven, real-time 3D exploded breakdown of a Leica M6-style rangefinder and a Summilux-M 50 mm f/1.4-style lens, rendered in the browser with [three.js](https://threejs.org).
+A scroll-driven, real-time 3D exploded breakdown of a Leica M11 digital rangefinder and a Summilux-M 50 mm f/1.4 ASPH lens, rendered in the browser with [three.js](https://threejs.org).
 
 Every part is procedurally modelled in code — no downloaded meshes, textures or HDRIs. There is no copy on the page: just the camera. Scroll and it comes apart, beat by beat, while a third-person camera orbits around it:
 
 1. Assembled hero on a studio sweep
 2. Lens releases from the M bayonet
-3. Barrel rings slide off; eight glass elements float with animated light rays converging on the film plane
+3. Barrel rings and the telescopic hood slide off; eight glass elements float with animated light rays converging on the sensor plane
 4. Ten-blade iris closes from f/1.4 to f/16
-5. Top plate lifts; speed dial, release, advance lever, rewind crank and hot shoe rise; brass gear train turns
-6. Viewfinder optics, beam splitter, swinging rangefinder mirror, bright-line mask and meter board separate, light paths glow
-7. Vulcanite peels off the die-cast chassis; rear door and pressure plate pull away
-8. Cloth focal-plane shutter slides out and fires on loop
-9. Base plate drops, revealing cassette, film strip and take-up spool
+5. Top plate lifts; the pull-up ISO dial (with its red unlock band), shutter-speed dial, release and main switch, function button and hot shoe rise above the encoder flex
+6. Viewfinder optics, beam splitter, swinging rangefinder mirror, LED frame-line module and bright-line mask separate; light paths glow
+7. Leatherette peels off the magnesium chassis; the rear cover, PLAY / FN / MENU buttons, d-pad and the touchscreen stack pull away as the screen lights up
+8. The vertical metal-blade shutter, the 60 MP BSI-CMOS sensor module (IR-cut cover glass, ceramic package, bond wires, alignment springs) and the Maestro III main board fan out
+9. The BP-SCL7 battery drops out with the bottom plate, SD card, USB-C port and tripod socket
 10. Full exploded view with an orbiting camera
 11. Everything reassembles
 
@@ -49,7 +49,7 @@ src/core/materials.js   PBR material library and finish switch
 src/core/textures.js    procedural canvas textures
 src/core/geometry.js    lathe / extrude / knurl / gear / screw helpers
 src/core/rig.js         explode rig: per-part offsets keyed to scroll
-src/parts/*.js          body, top plate, lens, shutter, film, rangefinder, electronics
+src/parts/*.js          body, top plate, lens, rangefinder, digital internals (sensor, shutter, board, display, battery)
 ```
 
 ## Disclaimer

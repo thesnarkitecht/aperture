@@ -238,68 +238,22 @@ export function decal(w, h, draw) {
   return t;
 }
 
-// 35mm film strip: orange base, sprocket holes (alpha) and faint exposed frames.
-export function filmStrip(frames = 8) {
-  const fw = 380; // px per 38mm frame pitch
-  const w = fw * frames, h = 350;
-  const c = canvas(w, h);
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#c0621c';
-  ctx.fillRect(0, 0, w, h);
-  for (let f = 0; f < frames; f++) {
-    const x0 = f * fw + 10;
-    const g = ctx.createLinearGradient(x0, 60, x0 + 360, 290);
-    const hue = (f * 47) % 360;
-    g.addColorStop(0, `hsl(${hue}, 35%, 22%)`);
-    g.addColorStop(0.5, `hsl(${(hue + 40) % 360}, 45%, 38%)`);
-    g.addColorStop(1, `hsl(${(hue + 90) % 360}, 30%, 16%)`);
-    ctx.fillStyle = g;
-    ctx.fillRect(x0, 62, 360, 226);
-    // Suggestion of a scene: horizon + sun.
-    ctx.fillStyle = 'rgba(20,10,5,0.45)';
-    ctx.fillRect(x0, 62 + 140 + ((f * 13) % 40), 360, 86 - ((f * 13) % 40));
-    ctx.beginPath();
-    ctx.fillStyle = 'rgba(255,220,180,0.25)';
-    ctx.arc(x0 + 80 + ((f * 61) % 200), 120, 26, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,200,120,0.9)';
-    ctx.font = `600 18px ${FONT_SANS}`;
-    ctx.fillText(`${f + 12}`, f * fw + 30, 44);
-    ctx.fillText(`${f + 12}A`, f * fw + 200, 44);
-    ctx.fillText('APERTURE 400', f * fw + 60, 320);
-  }
-  // Sprocket holes: 8 per frame, punched fully transparent.
-  ctx.globalCompositeOperation = 'destination-out';
-  const pitch = fw / 8;
-  for (let x = pitch / 2; x < w; x += pitch) {
-    for (const y of [10, 300]) {
-      ctx.beginPath();
-      ctx.roundRect(x - 14, y, 28, 38, 6);
-      ctx.fill();
-    }
-  }
-  const t = tex(c, { srgb: true });
-  t.wrapT = THREE.ClampToEdgeWrapping;
-  t.repeat.set(1, 1);
-  return t;
-}
-
-// Printed-circuit texture for the light-meter board.
-export function pcbTexture(size = 1024) {
+// Printed-circuit texture: solder mask, copper traces, pads, silkscreen.
+export function pcbTexture({ size = 1024, base = '#0d3b24', trace = 'rgba(200, 170, 80, 0.85)', labels = [], seed = 11 } = {}) {
   const c = canvas(size);
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#0d3b24';
+  ctx.fillStyle = base;
   ctx.fillRect(0, 0, size, size);
-  ctx.strokeStyle = 'rgba(200, 170, 80, 0.85)';
+  ctx.strokeStyle = trace;
   ctx.lineCap = 'round';
-  for (let i = 0; i < 70; i++) {
-    let x = hash(i, 1, 11) * size, y = hash(i, 2, 11) * size;
-    ctx.lineWidth = 3 + hash(i, 3, 11) * 6;
+  for (let i = 0; i < 110; i++) {
+    let x = hash(i, 1, seed) * size, y = hash(i, 2, seed) * size;
+    ctx.lineWidth = 2 + hash(i, 3, seed) * 5;
     ctx.beginPath();
     ctx.moveTo(x, y);
-    for (let s = 0; s < 5; s++) {
-      const len = 40 + hash(i, s, 12) * 160;
-      const dir = Math.floor(hash(i, s, 13) * 8) * (TAU / 8);
+    for (let st = 0; st < 5; st++) {
+      const len = 30 + hash(i, st, seed + 1) * 150;
+      const dir = Math.floor(hash(i, st, seed + 2) * 8) * (TAU / 8);
       x += Math.cos(dir) * len;
       y += Math.sin(dir) * len;
       ctx.lineTo(x, y);
@@ -307,42 +261,147 @@ export function pcbTexture(size = 1024) {
     ctx.stroke();
     ctx.fillStyle = '#d8b25a';
     ctx.beginPath();
-    ctx.arc(x, y, 9, 0, TAU);
+    ctx.arc(x, y, 6, 0, TAU);
     ctx.fill();
   }
-  ctx.fillStyle = 'rgba(240,240,230,0.8)';
-  ctx.font = `600 34px ${FONT_SANS}`;
-  ctx.fillText('LM-6  REV C', 60, 90);
-  ctx.fillText('IC1', 520, 300);
-  ctx.fillText('D1', 300, 760);
+  // Via field.
+  ctx.fillStyle = 'rgba(216,178,90,0.9)';
+  for (let i = 0; i < 400; i++) {
+    ctx.beginPath();
+    ctx.arc(hash(i, 5, seed) * size, hash(i, 6, seed) * size, 2.5, 0, TAU);
+    ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(240,240,230,0.85)';
+  ctx.font = `600 30px ${FONT_SANS}`;
+  for (const [t, x, y] of labels) ctx.fillText(t, x * size, y * size);
   const t = tex(c, { srgb: true });
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
 }
 
-// Label for the 35mm cassette (a fictional film stock).
-export function canisterLabel() {
-  const w = 1024, h = 512;
+// Micro-lens array over the photosites: a dense grid of tiny domes.
+export function microlensNormal(size = 512, n = 64) {
+  const h = new Float32Array(size * size);
+  const cell = size / n;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = (x % cell) / cell - 0.5, v = (y % cell) / cell - 0.5;
+      h[y * size + x] = Math.sqrt(Math.max(0, 0.25 - u * u - v * v));
+    }
+  }
+  return tex(heightToNormal(h, size, 4));
+}
+
+// Ceramic sensor package: dark ceramic, gold bond-pad ring, cavity.
+export function sensorPackage(w = 1024, h = 790) {
   const c = canvas(w, h);
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#16181a';
+  ctx.fillStyle = '#23221f';
   ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#e8b418';
-  ctx.fillRect(0, 0, w, 150);
-  ctx.fillStyle = '#c41a1a';
-  ctx.fillRect(0, 150, w, 26);
-  ctx.fillStyle = '#16181a';
-  ctx.font = `800 104px ${FONT_SANS}`;
-  ctx.fillText('APERTURE', 40, 112);
-  ctx.fillStyle = '#f2f0ea';
-  ctx.font = `300 190px ${FONT_SANS}`;
-  ctx.fillText('400', 40, 380);
-  ctx.font = `600 38px ${FONT_SANS}`;
-  ctx.fillText('135-36  ·  B&W', 520, 300);
-  ctx.fillText('ISO 400/27°', 520, 360);
-  ctx.fillStyle = '#e8b418';
-  for (let i = 0; i < 12; i++) ctx.fillRect(560 + i * 34, 410, 18, 50);
-  return tex(c, { srgb: true });
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, 'rgba(255,255,255,0.04)');
+  g.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  // Cavity.
+  ctx.fillStyle = '#0c0c0d';
+  ctx.fillRect(w * 0.08, h * 0.1, w * 0.84, h * 0.8);
+  // Bond pads on the ledge.
+  ctx.fillStyle = '#d6ad55';
+  const pads = 58;
+  for (let i = 0; i < pads; i++) {
+    const x = w * 0.1 + (i / (pads - 1)) * w * 0.8;
+    ctx.fillRect(x - 3, h * 0.105, 6, 16);
+    ctx.fillRect(x - 3, h * 0.895 - 16, 6, 16);
+  }
+  for (let i = 0; i < 40; i++) {
+    const y = h * 0.13 + (i / 39) * h * 0.74;
+    ctx.fillRect(w * 0.085, y - 3, 16, 6);
+    ctx.fillRect(w * 0.915 - 16, y - 3, 16, 6);
+  }
+  // Pin-1 mark.
+  ctx.beginPath();
+  ctx.arc(w * 0.04, h * 0.05, 9, 0, TAU);
+  ctx.fillStyle = '#d6ad55';
+  ctx.fill();
+  const t = tex(c, { srgb: true });
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+// Rear-screen image: a live-view frame of a dusk street (no UI text).
+export function screenImage(w = 1024, h = 683) {
+  const c = canvas(w, h);
+  const ctx = c.getContext('2d');
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+  sky.addColorStop(0, '#1d2b4a');
+  sky.addColorStop(0.55, '#b85e3c');
+  sky.addColorStop(1, '#f2b067');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#f7d9a0';
+  ctx.beginPath();
+  ctx.arc(w * 0.68, h * 0.56, 34, 0, TAU);
+  ctx.fill();
+  // Skyline silhouettes.
+  ctx.fillStyle = '#120d12';
+  let x = 0;
+  let i = 0;
+  while (x < w) {
+    const bw = 40 + hash(i, 1, 31) * 90;
+    const bh = 90 + hash(i, 2, 31) * 230;
+    ctx.fillRect(x, h * 0.62 - bh, bw, bh + h);
+    // Lit windows.
+    for (let wy = h * 0.62 - bh + 14; wy < h * 0.6; wy += 22) {
+      for (let wx = x + 8; wx < x + bw - 10; wx += 16) {
+        if (hash(Math.floor(wx), Math.floor(wy), 32) > 0.72) {
+          ctx.fillStyle = 'rgba(255,196,110,0.85)';
+          ctx.fillRect(wx, wy, 6, 9);
+        }
+      }
+    }
+    ctx.fillStyle = '#120d12';
+    x += bw + 6;
+    i++;
+  }
+  // Street with reflections.
+  const road = ctx.createLinearGradient(0, h * 0.62, 0, h);
+  road.addColorStop(0, '#2a1a1e');
+  road.addColorStop(1, '#0a0709');
+  ctx.fillStyle = road;
+  ctx.fillRect(0, h * 0.62, w, h);
+  ctx.fillStyle = 'rgba(247,190,120,0.35)';
+  ctx.fillRect(w * 0.66, h * 0.62, 10, h * 0.38);
+  // A figure crossing: the decisive moment.
+  ctx.fillStyle = '#050405';
+  ctx.beginPath();
+  ctx.ellipse(w * 0.32, h * 0.66, 11, 12, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillRect(w * 0.32 - 12, h * 0.68, 24, 70);
+  ctx.save();
+  ctx.translate(w * 0.32, h * 0.78);
+  ctx.rotate(0.35);
+  ctx.fillRect(-5, 0, 10, 60);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(w * 0.32, h * 0.78);
+  ctx.rotate(-0.3);
+  ctx.fillRect(-5, 0, 10, 60);
+  ctx.restore();
+  // Thin live-view guides (no text).
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 2;
+  for (const f of [1 / 3, 2 / 3]) {
+    ctx.beginPath(); ctx.moveTo(w * f, 0); ctx.lineTo(w * f, h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, h * f); ctx.lineTo(w, h * f); ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillRect(w * 0.03, h * 0.93, w * 0.18, 6);
+  ctx.fillStyle = 'rgba(120,220,120,0.95)';
+  ctx.fillRect(w * 0.03, h * 0.93, w * 0.12, 6);
+  const t = tex(c, { srgb: true });
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
 }
 
 // Soft radial glow used for dust motes / flares.

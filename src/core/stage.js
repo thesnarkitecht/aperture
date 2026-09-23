@@ -47,12 +47,12 @@ function studioEnvironment(renderer) {
     m.lookAt(...look);
     env.add(m);
   };
-  panel(12, 7, 0.85, [0, 12, 2], [0, 0, 0]);                         // overhead softbox
+  panel(12, 7, 0.7, [0, 12, 2], [0, 0, 0]);                         // overhead softbox
   panel(2.6, 13, 5.2, [-11, 3, 4], [0, 0, 0], [1, 0.96, 0.9]);       // key strip, warm
   panel(2.6, 13, 2.0, [11, 2, -3], [0, 0, 0], [0.88, 0.94, 1.06]);   // fill strip, cool
   panel(16, 1.8, 3.4, [0, 5, -12], [0, 0, 0]);                        // rim bar behind
   panel(10, 1.2, 0.6, [0, -3, 12], [0, 0, 0], [1, 0.9, 0.8]);          // low front kicker
-  panel(3.5, 3.5, 2.2, [7, 9, 8], [0, 0, 0]);                          // small hot spot
+  panel(3.5, 3.5, 1.3, [7, 9, 8], [0, 0, 0]);                          // small hot spot
   panel(20, 6, 0.12, [0, -9, 0], [0, 0, 0], [0.9, 0.9, 1]);            // floor bounce
   const pmrem = new THREE.PMREMGenerator(renderer);
   const rt = pmrem.fromScene(env, 0.035);
@@ -160,9 +160,16 @@ export function createStage(canvas) {
   key.shadow.normalBias = 0.012;
   key.shadow.radius = 5;
   scene.add(key, key.target);
-  const rim = new THREE.DirectionalLight(0xcfe0ff, 0.7);
+  const rim = new THREE.DirectionalLight(0xcfe0ff, 1.0);
   rim.position.set(3, 2.5, -4);
   scene.add(rim);
+  // Soft back fill so the rear and internal chapters don't fall into darkness.
+  const backFill = new THREE.DirectionalLight(0xfff2e6, 0.7);
+  backFill.position.set(-2, 4, -5);
+  scene.add(backFill);
+  const under = new THREE.DirectionalLight(0xdfe6ff, 0.35);
+  under.position.set(1, -4, 2);
+  scene.add(under);
   const fill = new THREE.HemisphereLight(0xffffff, 0x202022, 0.1);
   scene.add(fill);
 

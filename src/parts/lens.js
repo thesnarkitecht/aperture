@@ -89,13 +89,10 @@ export function buildLens(M, rig) {
   const collar = mesh(G.ringZ(24.3, 21, 1.4, 4, 0.3), M.anodized);
   lens.add(collar);
 
-  // Focus ring: scalloped grip, focusing tab and distance scale.
+  // Focus ring: finely grooved grip (no tab on the ASPH) and distance scale.
   const focus = new THREE.Group();
   focus.name = 'focusRing';
-  focus.add(mesh(G.ridgedRingZ({ rOuter: 26, rInner: 21.4, z0: 4, z1: 10, ridges: 18, depth: 1.0, profile: 'scallop', chamfer: 0.7 }), M.anodized));
-  const tab = mesh(G.extrudeForward(G.roundedRectShape(7.5, 10, 3.6, 0, -28.5), 4.2, 0.9), M.anodized);
-  tab.position.z = 5;
-  focus.add(tab);
+  focus.add(mesh(G.ridgedRingZ({ rOuter: 25.8, rInner: 21.4, z0: 4, z1: 10, ridges: 64, depth: 0.55, profile: 'scallop', chamfer: 0.6 }), M.anodized));
   focus.add(mesh(G.ringZ(25.2, 21.4, 10, 15, 0.25), M.anodized));
   const dist = [['0.7', 0.18], ['0.8', 0.26], ['1', 0.33], ['1.5', 0.4], ['2', 0.44], ['3', 0.48], ['5', 0.515], ['∞', 0.56]];
   const distFt = [['2.5', 0.2], ['3', 0.28], ['4', 0.35], ['5', 0.39], ['7', 0.43], ['10', 0.47], ['15', 0.5], ['30', 0.535]];
@@ -151,6 +148,13 @@ export function buildLens(M, rig) {
   nameRing.position.z = 36.01;
   front.add(nameRing);
   lens.add(front);
+
+  // Built-in telescopic hood (retracted), with its knurled locking band.
+  const hood = new THREE.Group();
+  hood.name = 'hood';
+  hood.add(mesh(G.latheZ([[24.0, 25.4], [25.6, 25.4], [25.6, 36.2], [25.2, 36.8], [24.0, 36.8], [24.0, 25.4]], 160), M.anodized));
+  hood.add(mesh(G.ridgedRingZ({ rOuter: 25.9, rInner: 24.0, z0: 25.6, z1: 28.2, ridges: 120, depth: 0.25, chamfer: 0.25 }), M.anodized));
+  lens.add(hood);
 
   const baffle = mesh(G.latheZ([[19.4, 29], [20.6, 29], [20.6, 35.9], [19.4, 35.9], [19.4, 29]], 96), M.matteBlack);
   lens.add(baffle);
@@ -268,6 +272,7 @@ export function buildLens(M, rig) {
   rig.add(lens, 'lensPark', [0, -270, 160], [0.3, 0, 0]);
   rig.floaty(lens, 1.2, 0.5);
   rig.add(front, 'lensInner', [0, 0, 64]);
+  rig.add(hood, 'lensInner', [0, 0, 82]);
   rig.add(baffle, 'lensInner', [0, 0, 50]);
   rig.add(ap, 'lensInner', [0, 0, 44]);
   rig.add(dof, 'lensInner', [0, 0, 30]);
