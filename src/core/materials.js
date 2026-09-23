@@ -5,8 +5,8 @@ import * as T from './textures.js';
 
 export function createMaterials() {
   const leather = T.leatherMaps();
-  leather.normal.repeat.set(1 / 30, 1 / 30);
-  leather.rough.repeat.set(1 / 30, 1 / 30);
+  leather.normal.repeat.set(1 / 44, 1 / 44);
+  leather.rough.repeat.set(1 / 44, 1 / 44);
   const brushed = T.brushedRoughness();
   brushed.repeat.set(1 / 48, 1 / 48);
   const clothN = T.clothNormal();
@@ -34,8 +34,8 @@ export function createMaterials() {
     clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.0,
   });
   M.anodized = new THREE.MeshPhysicalMaterial({
-    name: 'anodized', color: 0x0c0c0d, metalness: 0.55, roughness: 0.36,
-    clearcoat: 0.35, clearcoatRoughness: 0.3,
+    name: 'anodized', color: 0x0d0d0e, metalness: 0.5, roughness: 0.44,
+    clearcoat: 0.15, clearcoatRoughness: 0.4,
   });
   M.crate = new THREE.MeshPhysicalMaterial({
     name: 'crate', color: 0x7a7d82, metalness: 1, roughness: 0.34, roughnessMap: brushed,
@@ -44,8 +44,8 @@ export function createMaterials() {
     name: 'anodizedMatte', color: 0x101011, metalness: 0.4, roughness: 0.55,
   });
   M.leather = new THREE.MeshPhysicalMaterial({
-    name: 'leather', color: 0x111111, metalness: 0, roughness: 0.72,
-    normalMap: leather.normal, normalScale: new THREE.Vector2(1.1, 1.1), roughnessMap: leather.rough,
+    name: 'leather', color: 0x151516, metalness: 0, roughness: 0.62,
+    normalMap: leather.normal, normalScale: new THREE.Vector2(1.35, 1.35), roughnessMap: leather.rough,
     sheen: 0.25, sheenRoughness: 0.5, sheenColor: new THREE.Color(0x303030),
     clearcoat: 0.08, clearcoatRoughness: 0.5,
   });
@@ -138,6 +138,8 @@ export function createMaterials() {
   M.battery = new THREE.MeshPhysicalMaterial({
     name: 'battery', color: 0x151516, metalness: 0.1, roughness: 0.45, clearcoat: 0.4, clearcoatRoughness: 0.3,
   });
+  // Rangefinder window: grey-tinted, with a pale interior prism behind.
+  M.rfGlass = new THREE.MeshPhysicalMaterial({ name: 'rfGlass', color: 0xc9ccce, metalness: 0.25, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.02, emissive: 0x3a3c3e });
   M.ledLens = new THREE.MeshPhysicalMaterial({ name: 'ledLens', color: 0x5a0a08, roughness: 0.05, clearcoat: 1, emissive: 0x200000 });
   M.white = new THREE.MeshPhysicalMaterial({ name: 'white', color: 0xf2f0ea, roughness: 0.4 });
   M.frameline = new THREE.MeshBasicMaterial({
@@ -156,6 +158,12 @@ export function createMaterials() {
   };
   M.setFinish = (name) => {
     const f = finishes[name];
+    for (const d of M.dials || []) {
+      d.mat.map = d.maps[name];
+      d.mat.metalness = name === 'chrome' ? 0.55 : 0.2;
+      d.mat.roughness = name === 'chrome' ? 0.4 : 0.45;
+      d.mat.needsUpdate = true;
+    }
     M.body.color.set(f.color);
     M.body.metalness = f.metalness;
     M.body.roughness = f.roughness;

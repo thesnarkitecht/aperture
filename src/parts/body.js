@@ -9,20 +9,8 @@ import { buildDisplay, buildBattery } from './digital.js';
 const { mesh } = G;
 const TAU = Math.PI * 2;
 
-function halfAnnulus(rOuter, rInner, cx, side) {
-  // Plan-view half ring around (cx, 0); side = +1 for the +X end, -1 for -X.
-  const s = new THREE.Shape();
-  const a0 = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-  const a1 = a0 + Math.PI;
-  s.moveTo(cx + Math.cos(a0) * rOuter, Math.sin(a0) * rOuter);
-  s.absarc(cx, 0, rOuter, a0, a1, false);
-  s.lineTo(cx + Math.cos(a1) * rInner, Math.sin(a1) * rInner);
-  s.absarc(cx, 0, rInner, a1, a0, true);
-  s.closePath();
-  return s;
-}
-
-function frontPanelShape(holeR, extraHoles = []) {
+// Flat front/back panel between the elliptical ends, with round holes [x, y, r].
+function panelShape(holes = [], rects = []) {
   const s = new THREE.Shape();
   const x0 = -D.halfFlat, x1 = D.halfFlat;
   s.moveTo(x0, D.bodyY0);
@@ -30,15 +18,15 @@ function frontPanelShape(holeR, extraHoles = []) {
   s.lineTo(x1, D.bodyY1);
   s.lineTo(x0, D.bodyY1);
   s.closePath();
-  if (holeR) {
-    const h = new THREE.Path();
-    G.circlePath(h, holeR, 0, D.lensY, true);
-    s.holes.push(h);
-  }
-  for (const [x, y, r] of extraHoles) {
+  for (const [x, y, r] of holes) {
     const h = new THREE.Path();
     G.circlePath(h, r, x, y, true);
     s.holes.push(h);
+  }
+  for (const [w, h, x, y, r] of rects) {
+    const p = new THREE.Path();
+    G.roundedRectPath(p, w, h, r, x, y, true);
+    s.holes.push(p);
   }
   return s;
 }
@@ -62,7 +50,7 @@ function throatGeometry() {
       const n = 8;
       const rr = Math.pow(Math.pow(Math.abs(c) / rw, n) + Math.pow(Math.abs(s) / rh, n), -1 / n);
       const r = cr + (rr - cr) * blend - rib;
-      pos.push(c * r, D.lensY + s * r, z);
+      pos.push(D.lensX + c * r, D.lensY + s * r, z);
     }
   }
   const row = segs + 1;
@@ -81,28 +69,24 @@ function throatGeometry() {
 
 // Rear layout (x > 0 is the photographer's left).
 export const R = {
-  lcd: { cx: 9, cy: -10.5, w: 69, h: 47 },
-  buttons: { x: 48.2, ys: [2.5, -10.5, -23.5], labels: ['PLAY', 'FN', 'MENU'] },
-  dpad: { x: -38.5, y: -15 },
-  led: { x: -38.5, y: 3 },
+  lcd: { cx: 8, cy: -8.5, w: 69, h: 47 },
+  buttons: { x: 49, ys: [4.5, -8.5, -21.5], labels: ['PLAY', 'FN', 'MENU'] },
+  dpad: { x: -39.5, y: -13 },
+  led: { x: -39.5, y: 5.5 },
+};
+// Front controls, measured from the front reference photo.
+export const F = {
+  release: { x: -23.2, y: -6.1, r: 4.1 },
+  selector: { x: 42.2, y: -5.5, tipX: 44.4, tipY: 5.9 },
+  lug: { y: 9.4, z: 8 },
 };
 // Bottom layout.
 export const B = {
-  battery: { x: 40, z: 0, w: 19, d: 27, h: 50 },
-  socket: { x: 6 },
-  lever: { x: 21 },
-  usb: { x: 60.5 },
+  battery: { x: 44, z: 0, w: 18, d: 25, h: 50 },
+  socket: { x: 8 },
+  lever: { x: 22 },
+  usb: { x: 62 },
 };
-
-function rearPanelShape(holes) {
-  const s = frontPanelShape(0);
-  for (const [w, h, x, y, r] of holes) {
-    const p = new THREE.Path();
-    G.roundedRectPath(p, w, h, r, x, y, true);
-    s.holes.push(p);
-  }
-  return s;
-}
 
 // Engraved label for small buttons (reads from behind: U flipped by the rotation).
 function labelDecal(text, w, h, size = 64) {
@@ -121,47 +105,35 @@ function labelDecal(text, w, h, size = 64) {
 export function buildBody(M, rig) {
   const body = new THREE.Group();
   body.name = 'body';
+  const lx = D.lensX, ly = D.lensY;
 
-  // ---- Chassis (magnesium die-casting) -------------------------------------
+  // ---- Chassis (magnesium die-casting) -------------------------------------------
   const chassis = new THREE.Group();
   chassis.name = 'chassis';
   body.add(chassis);
 
-  const chFront = mesh(G.extrudeForward(frontPanelShape(D.throatR, [[33, -15, 3.2]]), D.wall), M.chassis);
+  const chFront = mesh(G.extrudeForward(panelShape([[lx, ly, D.throatR], [F.release.x, F.release.y, 3.4]]), D.wall), M.chassis);
   chFront.position.z = D.chassisInner;
   chassis.add(chFront);
 
+  const aO = D.endA - D.leather, bO = D.chassisOuter;
   for (const side of [1, -1]) {
-    const end = mesh(G.extrudeUp(halfAnnulus(D.chassisOuter, D.chassisInner, side * D.halfFlat, side), D.bodyY1 - D.bodyY0), M.chassis);
+    const end = mesh(G.extrudeUp(G.halfEllipseRing(aO, bO, aO - D.wall, bO - D.wall, side * D.halfFlat, side), D.bodyY1 - D.bodyY0), M.chassis);
     end.position.y = D.bodyY0;
     chassis.add(end);
-    // Internal bulkheads: battery bay on one side, electronics bay on the other.
-    const wall = mesh(new THREE.BoxGeometry(1.4, D.bodyY1 - 2 - D.bodyY0, 2 * D.chassisInner), M.chassis);
-    wall.position.set(side * 29.5, (D.bodyY1 - 2 + D.bodyY0) / 2, 0);
-    chassis.add(wall);
-    // Strap lugs: round eyelets.
-    const lug = new THREE.Group();
-    const post = mesh(G.latheY([[0, 0], [2.4, 0], [2.4, 1.2], [1.7, 2.0], [1.7, 3.6], [0, 3.6]], 32), M.chromePolished);
-    post.rotation.z = -side * Math.PI / 2;
-    lug.add(post);
-    const eye = mesh(new THREE.TorusGeometry(2.4, 0.75, 16, 48), M.chromePolished);
-    eye.position.x = side * 4.6;
-    eye.rotation.y = Math.PI / 2;
-    lug.add(eye);
-    lug.position.set(side * (D.halfFlat + D.endR - 0.3), 11, 0);
-    chassis.add(lug);
-    rig.add(lug, 'skin', [side * 14, 0, 0]);
   }
-
-  const deck = mesh(G.extrudeUp(G.roundedRectShape(2 * D.halfFlat + 2 * D.chassisInner, 2 * D.chassisInner, D.chassisInner), 2, 0.3), M.chassis);
+  // Internal bulkheads either side of the throat (battery bay on the +X side).
+  for (const x of [-14.6, 33.2]) {
+    const wall = mesh(new THREE.BoxGeometry(1.4, D.bodyY1 - 2 - D.bodyY0, 2 * D.chassisInner), M.chassis);
+    wall.position.set(x, (D.bodyY1 - 2 + D.bodyY0) / 2, 0);
+    chassis.add(wall);
+  }
+  const deck = mesh(G.extrudeUp(G.planShape({ x0: -D.W / 2 + 2.5, x1: D.W / 2 - 2.5, d: 2 * D.chassisInner, a: D.endA - 2.5 }), 2, 0.3), M.chassis);
   deck.position.y = D.bodyY1 - 2;
   chassis.add(deck);
+  chassis.add(mesh(throatGeometry(), M.matteBlack));
 
-  const throat = mesh(throatGeometry(), M.matteBlack);
-  chassis.add(throat);
-
-  // Die-cast bosses and screws on the inside of the front casting.
-  for (const [x, y] of [[-46, 10], [46, 10], [-46, -30], [46, -30], [-26, -32], [26, -32]]) {
+  for (const [x, y] of [[-46, 10], [50, 10], [-46, -28], [50, -28], [-22, -30], [40, -30]]) {
     const boss = mesh(G.latheZ([[0, 0], [2.6, 0], [2.6, 2.2], [2.2, 2.6], [0, 2.6]], 24), M.chassis);
     boss.rotation.y = Math.PI;
     boss.position.set(x, y, D.chassisInner);
@@ -170,6 +142,30 @@ export function buildBody(M, rig) {
     sc.rotation.x = -Math.PI / 2;
     sc.position.set(x, y, D.chassisInner - 2.6);
     chassis.add(sc);
+  }
+
+  // Strap lugs: teardrop eyelets on the ends, ahead of centre.
+  for (const side of [1, -1]) {
+    const lug = new THREE.Group();
+    const s = new THREE.Shape();
+    s.moveTo(0, -3.9);
+    s.lineTo(4.4, -3.2);
+    s.absarc(4.6, 0, 3.2, -Math.PI / 2, Math.PI / 2, false);
+    s.lineTo(0, 3.9);
+    s.closePath();
+    const hole = new THREE.Path();
+    G.circlePath(hole, 1.45, 5.0, 0, true);
+    s.holes.push(hole);
+    const plate = mesh(G.extrudeForward(s, 2.6, 0.7, 24, 3), M.chromePolished);
+    plate.position.z = -1.3;
+    lug.add(plate);
+    const bz = F.lug.z, b = D.depth / 2;
+    const ex = D.halfFlat + D.endA * Math.sqrt(1 - (bz / b) * (bz / b));
+    lug.position.set(side * (ex - 1.2), F.lug.y, bz);
+    if (side < 0) lug.scale.x = -1;
+    lug.rotation.y = -side * 0.35; // angled slightly forward
+    chassis.add(lug);
+    rig.add(lug, 'skin', [side * 14, 0, 0]);
   }
 
   // Body mount: chrome flange, four screws, bayonet lugs, 6-bit code reader.
@@ -184,61 +180,62 @@ export function buildBody(M, rig) {
   }
   for (let i = 0; i < 4; i++) {
     const a = Math.PI / 4 + (i * Math.PI) / 2;
-    const s = G.screw(M, 0.9);
-    s.rotation.x = Math.PI / 2;
-    s.position.set(Math.cos(a) * 23.2, Math.sin(a) * 23.2, D.mountZ - 0.35);
-    mount.add(s);
+    const sc = G.screw(M, 0.9);
+    sc.rotation.x = Math.PI / 2;
+    sc.position.set(Math.cos(a) * 23.2, Math.sin(a) * 23.2, D.mountZ - 0.35);
+    mount.add(sc);
   }
-  const idxDot = mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.4, 20), M.redEnamel);
-  idxDot.rotation.x = Math.PI / 2;
-  idxDot.position.set(8.5, 22.7, D.mountZ - 0.3);
-  mount.add(idxDot);
-  // Lens-code sensor: a small dark window in the flange reading the 6-bit code.
   const code = mesh(G.extrudeForward(G.roundedRectShape(3.2, 1.6, 0.5), 0.3), M.glassDark);
   code.position.set(-17.5, -14.8, D.mountZ - 0.28);
   code.rotation.z = -0.7;
   mount.add(code);
-  mount.position.y = D.lensY;
+  mount.position.set(lx, ly, 0);
   body.add(mount);
   rig.add(mount, 'skin', [0, 0, 16]);
 
-  // ---- Leatherette (front and ends) ---------------------------------------------
-  const frontSkin = mesh(G.boxUV(G.extrudeForward(frontPanelShape(25.2, [[33, -15, 4.8]]), D.leather, 0.15, 64, 1)), M.leather);
+  // ---- Leatherette: coarse pebble grain on the front and around the ends ---------------------
+  const frontSkin = mesh(G.boxUV(G.extrudeForward(panelShape([[lx, ly, 25.2], [F.release.x, F.release.y, 4.6]]), D.leather, 0.15, 64, 1)), M.leather);
   frontSkin.position.z = D.chassisOuter;
   body.add(frontSkin);
   rig.add(frontSkin, 'skin', [0, 0, 30]);
   for (const side of [1, -1]) {
-    const endSkin = mesh(G.boxUV(G.extrudeUp(halfAnnulus(D.endR, D.chassisOuter, side * D.halfFlat, side), D.bodyY1 - D.bodyY0, 0.1, 64, 1)), M.leather);
+    const endSkin = mesh(G.boxUV(G.extrudeUp(G.halfEllipseRing(D.endA, D.depth / 2, aO, bO, side * D.halfFlat, side), D.bodyY1 - D.bodyY0, 0.1, 64, 1)), M.leather);
     endSkin.position.y = D.bodyY0;
     body.add(endSkin);
     rig.add(endSkin, 'skin', [side * 26, 0, 0]);
   }
 
-  // ---- Front controls ------------------------------------------------------------
+  // ---- Front controls ------------------------------------------------------------------
+  // Lens release: domed button in a chrome housing that bridges to the mount flange.
   const release = new THREE.Group();
   release.name = 'lensRelease';
-  release.add(mesh(G.latheZ([[0, 0], [4.4, 0], [4.4, 0.6], [3.9, 1.0], [3.9, 2.4], [3.5, 2.9], [0, 3.1, 1]], 48), M.chromeTurned));
-  release.position.set(33, -15, D.frontZ - 0.2);
+  const hs = G.roundedRectShape(13.6, 11.4, 5.7, 6.8 - 5.7, 0);
+  const housing = mesh(G.extrudeForward(hs, 1.7, 0.55, 48, 3), M.chromePolished);
+  release.add(housing);
+  release.add(mesh(G.latheZ([[0, 0], [F.release.r, 0], [F.release.r, 1.6], [F.release.r - 0.5, 2.3, 1], [2.2, 2.75, 1], [0, 2.9, 1]], 64), M.chromeTurned));
+  release.position.set(F.release.x, F.release.y, D.frontZ - 0.1);
   body.add(release);
   rig.add(release, 'skin', [0, 0, 22]);
 
-  // Frame selector lever; its flat cap is a screw head.
+  // Frame selector: a flat paddle pivoting on a round boss (its cap is a screw).
   const selector = new THREE.Group();
   selector.name = 'frameSelector';
-  selector.add(mesh(G.latheZ([[0, 0], [2.8, 0], [2.8, 1.2], [2.3, 1.6], [0, 1.6]], 32), M.body));
-  const capScrew = G.screw(M, 1.6, false);
+  const dx = F.selector.tipX - F.selector.x, dy = F.selector.tipY - F.selector.y;
+  const len = Math.hypot(dx, dy);
+  selector.add(mesh(G.latheZ([[0, 0], [4.5, 0], [4.5, 1.0], [4.1, 1.4], [0, 1.4]], 48), M.body));
+  const paddle = mesh(G.extrudeForward(G.roundedRectShape(len + 4.8, 4.8, 2.4, len / 2, 0), 1.3, 0.4, 32, 3), M.body);
+  paddle.rotation.z = Math.atan2(dy, dx);
+  paddle.position.z = 1.2;
+  selector.add(paddle);
+  const capScrew = G.screw(M, 1.8, false);
   capScrew.rotation.x = Math.PI / 2;
-  capScrew.position.z = 1.6;
+  capScrew.position.z = 2.5;
   selector.add(capScrew);
-  const arm = mesh(G.extrudeForward(G.roundedRectShape(2.6, 10, 1.2, 0, -4.5), 1.2, 0.3), M.body);
-  arm.position.z = 0.8;
-  arm.rotation.z = 0.5;
-  selector.add(arm);
-  selector.position.set(31, 7, D.frontZ);
+  selector.position.set(F.selector.x, F.selector.y, D.frontZ);
   body.add(selector);
   rig.add(selector, 'skin', [0, 0, 20]);
 
-  // ---- Rear cover with display, buttons and d-pad -------------------------------------
+  // ---- Rear cover with display, buttons and d-pad ----------------------------------------------
   const rear = new THREE.Group();
   rear.name = 'rearCover';
   const holes = [
@@ -246,15 +243,14 @@ export function buildBody(M, rig) {
     ...R.buttons.ys.map((y) => [7.4, 5.6, R.buttons.x, y, 2.8]),
     [17, 17, R.dpad.x, R.dpad.y, 8.5],
   ];
-  const back = mesh(G.extrudeForward(rearPanelShape(holes), D.wall), M.chassis);
+  const back = mesh(G.extrudeForward(panelShape([], holes), D.wall), M.chassis);
   back.position.z = -D.chassisOuter;
   rear.add(back);
-  const backSkin = mesh(G.boxUV(G.extrudeForward(rearPanelShape(holes.map(([w, h, x, y, r]) => [w + 1.2, h + 1.2, x, y, r + 0.6])), D.leather, 0.15, 64, 1)), M.leather);
+  const backSkin = mesh(G.boxUV(G.extrudeForward(panelShape([], holes.map(([w, h, x, y, r]) => [w + 1.2, h + 1.2, x, y, r + 0.6])), D.leather, 0.15, 64, 1)), M.leather);
   backSkin.position.z = -D.frontZ;
   rear.add(backSkin);
   rig.add(backSkin, 'skin', [0, 0, -12]);
 
-  // PLAY / FN / MENU, stacked left of the screen (MENU lowest).
   R.buttons.ys.forEach((y, i) => {
     const b = new THREE.Group();
     b.add(mesh(G.extrudeForward(G.roundedRectShape(6.6, 4.8, 2.4), 1.6, 0.45), M.rubber));
@@ -267,7 +263,6 @@ export function buildBody(M, rig) {
     rig.add(b, 'displaySpread', [0, 0, -10 - i * 2]);
   });
 
-  // Directional pad with centre button.
   const dpad = new THREE.Group();
   dpad.add(mesh(G.latheZ([[3.4, 0], [7.8, 0], [7.8, 0.9], [7.3, 1.5], [3.9, 1.5], [3.4, 1.0]], 64), M.rubber));
   for (let i = 0; i < 4; i++) {
@@ -284,7 +279,6 @@ export function buildBody(M, rig) {
   rear.add(dpad);
   rig.add(dpad, 'displaySpread', [0, 0, -14]);
 
-  // Status LED.
   const led = mesh(new THREE.CircleGeometry(0.9, 24), M.ledLens);
   led.rotation.y = Math.PI;
   led.position.set(R.led.x, R.led.y, -D.frontZ - 0.02);
@@ -297,17 +291,16 @@ export function buildBody(M, rig) {
   const display = buildDisplay(M, rig, { cx: R.lcd.cx, cy: R.lcd.cy, w: R.lcd.w, h: R.lcd.h });
   body.add(display.group);
 
-  // ---- Bottom plate ------------------------------------------------------------------
+  // ---- Bottom plate ------------------------------------------------------------------------
   const base = new THREE.Group();
   base.name = 'bottomPlate';
-  const bs = G.roundedRectShape(D.W, D.plateD, D.plateD / 2);
+  const bs = G.planShape({ x0: -D.W / 2, x1: D.W / 2, d: D.baseD, a: D.endA });
   const bh = new THREE.Path();
   G.roundedRectPath(bh, B.battery.w + 2, B.battery.d + 2, 3.2, B.battery.x, B.battery.z, true);
   bs.holes.push(bh);
-  const plate = mesh(G.extrudeUp(bs, D.bodyY0 - D.baseY0, 1.1), M.body);
+  const plate = mesh(G.extrudeUp(bs, D.bodyY0 - D.baseY0, 1.3, 72, 4), M.body);
   plate.position.y = D.baseY0;
   base.add(plate);
-  // Tripod socket (1/4", stainless) and the battery-release lever beside it.
   const socket = mesh(G.latheY([[4.8, 0], [4.8, 0.5], [3.3, 0.8], [3.3, 0.2], [2.9, 0.2], [2.9, 4], [0, 4]], 48), M.steel);
   socket.rotation.x = Math.PI;
   socket.position.set(B.socket.x, D.baseY0 + 0.5, 0);
@@ -324,14 +317,12 @@ export function buildBody(M, rig) {
   }
   const lever = new THREE.Group();
   lever.add(mesh(G.latheY([[0, 0], [2.4, 0], [2.4, 0.5], [0, 0.5]], 24), M.chromePolished));
-  const leverArm = mesh(G.extrudeUp(G.roundedRectShape(9, 3.4, 1.7, 4, 0), 0.9, 0.3), M.chromePolished);
-  lever.add(leverArm);
+  lever.add(mesh(G.extrudeUp(G.roundedRectShape(9, 3.4, 1.7, 4, 0), 0.9, 0.3), M.chromePolished));
   lever.rotation.x = Math.PI;
   lever.rotation.y = 0.3;
   lever.position.set(B.lever.x, D.baseY0 - 0.02, -5);
   base.add(lever);
   rig.add(lever, 'bottom', [0, -6, 0], [0, 0.9, 0]);
-  // USB-C socket at the corner.
   const usb = new THREE.Group();
   usb.add(mesh(G.extrudeUp(G.roundedRectShape(3.4, 9.2, 1.6), 1.2, 0.2), M.steel));
   const usbHole = mesh(G.extrudeUp(G.roundedRectShape(2.5, 8.2, 1.2), 1.3), M.matteBlack);
@@ -342,11 +333,10 @@ export function buildBody(M, rig) {
   usb.add(tongue);
   usb.position.set(B.usb.x, D.baseY0 - 0.05, 0);
   base.add(usb);
-  // Four small screws.
-  for (const x of [-56, -30, 16, 54]) {
+  for (const [x, z] of [[-56, 10], [-30, 10], [18, 10], [56, -9]]) {
     const sc = G.screw(M, 0.8);
     sc.rotation.x = Math.PI;
-    sc.position.set(x, D.baseY0 + 0.3, x > 50 ? -11 : 11);
+    sc.position.set(x, D.baseY0 + 0.3, z);
     base.add(sc);
   }
   body.add(base);
@@ -355,11 +345,12 @@ export function buildBody(M, rig) {
 
   // SD card slot inside the battery bay, and the card itself.
   const sd = new THREE.Group();
+  const sdX = B.battery.x + B.battery.w / 2 + 2.4;
   const slot = mesh(new THREE.BoxGeometry(2.6, 26, 26), M.steel);
-  slot.position.set(B.battery.x + B.battery.w / 2 + 2.4, D.bodyY0 + 16, 0);
+  slot.position.set(sdX, D.bodyY0 + 16, 0);
   sd.add(slot);
   const card = new THREE.Group();
-  const cardBody = mesh(G.extrudeForward(G.roundedRectShape(24, 32, 1.2), 2.1, 0.2), new THREE.MeshPhysicalMaterial({
+  const cardBody = mesh(G.planarUV(G.extrudeForward(G.roundedRectShape(24, 32, 1.2), 2.1, 0.2), 24, 32), new THREE.MeshPhysicalMaterial({
     map: T.decal(384, 512, (ctx, w, h, f) => {
       ctx.fillStyle = '#1b1c1e';
       ctx.fillRect(0, 0, w, h);
@@ -380,9 +371,8 @@ export function buildBody(M, rig) {
     pad.position.set(-9 + i * 2.2, -14, -0.03);
     card.add(pad);
   }
-  G.planarUV(cardBody.geometry, 24, 32);
   card.rotation.y = Math.PI / 2;
-  card.position.set(B.battery.x + B.battery.w / 2 + 2.4, D.bodyY0 + 16, 0);
+  card.position.set(sdX, D.bodyY0 + 16, 0);
   sd.add(card);
   body.add(sd);
   rig.add(card, 'bottom', [0, -58, 0]);

@@ -11,23 +11,24 @@ const TAU = Math.PI * 2;
 export function buildRangefinder(M, rig) {
   const g = new THREE.Group();
   g.name = 'rangefinder';
-  const Y = D.winY;
+  const Y = 28.4;          // optical axis of the finder, level with the windows
+  const VX = 46.2, RX = -23; // viewfinder and rangefinder window centres (69.2 mm base)
   const yb = D.bodyY1 + 1.2;
 
-  const plate = mesh(G.extrudeUp(G.roundedRectShape(104, 24, 3, -2, 0), 1.2, 0.3), M.steel);
+  const plate = mesh(G.extrudeUp(G.roundedRectShape(84, 24, 3, (VX + RX) / 2, 0), 1.2, 0.3), M.steel);
   plate.position.y = yb;
   g.add(plate);
 
   // Viewfinder: objective, frame-line mask, beam splitter, eyepiece.
   const vf = new THREE.Group();
   const objective = mesh(G.extrudeForward(G.roundedRectShape(19, 12, 2), 3.2, 0.8), M.glass, { cast: false });
-  objective.position.set(43, Y, 11);
+  objective.position.set(VX, Y, 11);
   vf.add(objective);
   const eyeLens = mesh(G.extrudeForward(G.roundedRectShape(11, 9, 2), 3, 0.8), M.glass, { cast: false });
-  eyeLens.position.set(43, Y, -14);
+  eyeLens.position.set(VX, Y, -14);
   vf.add(eyeLens);
   const cube = mesh(new THREE.BoxGeometry(9, 9, 9), M.glass, { cast: false });
-  cube.position.set(43, Y, 2);
+  cube.position.set(VX, Y, 2);
   vf.add(cube);
   const halfMirror = mesh(new THREE.PlaneGeometry(12.4, 8.6), new THREE.MeshPhysicalMaterial({
     color: 0xd8c0ff, metalness: 1, roughness: 0.05, transparent: true, opacity: 0.55, side: THREE.DoubleSide,
@@ -39,10 +40,10 @@ export function buildRangefinder(M, rig) {
   // Rails holding the viewfinder optics.
   for (const s of [-1, 1]) {
     const rail = mesh(new THREE.BoxGeometry(1.4, 1.4, 30), M.anodizedMatte);
-    rail.position.set(43 + s * 10.5, yb + 2, -1.5);
+    rail.position.set(VX + s * 10.5, yb + 2, -1.5);
     vf.add(rail);
     const post = mesh(new THREE.BoxGeometry(1.2, Y - yb + 5, 1.2), M.anodizedMatte);
-    post.position.set(43 + s * 10.5, (Y + yb) / 2 + 1, 11);
+    post.position.set(VX + s * 10.5, (Y + yb) / 2 + 1, 11);
     vf.add(post);
   }
   g.add(vf);
@@ -62,13 +63,13 @@ export function buildRangefinder(M, rig) {
     return f;
   };
   mask.add(line(17, 11), line(12.5, 8.2), line(7, 4.6));
-  mask.position.set(43, Y, 7);
+  mask.position.set(VX, Y, 7);
   g.add(mask);
   // Meter LEDs below the frame.
   for (const s of [-1, 1]) {
     const led = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 3), M.led);
     led.rotation.z = s * Math.PI / 2;
-    led.position.set(43 + s * 2.2, Y - 8.2, 7);
+    led.position.set(VX + s * 2.2, Y - 8.2, 7);
     g.add(led);
   }
 
@@ -97,7 +98,7 @@ export function buildRangefinder(M, rig) {
   const rf = new THREE.Group();
   const mirror = mesh(G.extrudeForward(G.roundedRectShape(10, 9, 0.8), 0.9, 0.2), M.chromePolished);
   const mirrorPivot = new THREE.Group();
-  mirrorPivot.position.set(-47, Y, 4);
+  mirrorPivot.position.set(RX, Y, 4);
   mirrorPivot.rotation.y = -Math.PI / 4;
   mirror.position.z = -0.45;
   mirrorPivot.add(mirror);
@@ -106,18 +107,18 @@ export function buildRangefinder(M, rig) {
   mirrorPivot.add(mirrorBack);
   rf.add(mirrorPivot);
   const pivotPin = mesh(new THREE.CylinderGeometry(0.7, 0.7, 14, 16), M.steel);
-  pivotPin.position.set(-47, Y - 1, 4);
+  pivotPin.position.set(RX, Y - 1, 4);
   rf.add(pivotPin);
-  const tube = mesh(new THREE.CylinderGeometry(3, 3, 76, 48, 1, true, 0.9, TAU - 1.8), M.matteBlack);
+  const tube = mesh(new THREE.CylinderGeometry(3, 3, VX - RX - 10, 48, 1, true, 0.9, TAU - 1.8), M.matteBlack);
   tube.rotation.z = Math.PI / 2;
-  tube.position.set(-4, Y, 4);
+  tube.position.set((VX + RX) / 2, Y, 4);
   rf.add(tube);
   const compLens = mesh(G.latheZ([[0, -0.9], [2.7, -0.6, 1], [2.7, 0.6], [0, 0.9, 1]], 32), M.glass, { cast: false });
   compLens.rotation.y = Math.PI / 2;
-  compLens.position.set(-18, Y, 4);
+  compLens.position.set(RX + 12, Y, 4);
   rf.add(compLens);
   // Cam-follower arm running down to the roller on the lens cam.
-  const armStart = new THREE.Vector3(-45, Y - 4, 5), armEnd = new THREE.Vector3(10, D.lensY + 22.2, 12.5);
+  const armStart = new THREE.Vector3(RX + 2, Y - 4, 5), armEnd = new THREE.Vector3(D.lensX + 8, D.lensY + 22.2, 12.5);
   const armLen = armStart.distanceTo(armEnd);
   const arm = mesh(new THREE.BoxGeometry(armLen, 1.6, 2.2), M.steel);
   arm.position.copy(armStart).lerp(armEnd, 0.5);
@@ -142,8 +143,8 @@ export function buildRangefinder(M, rig) {
   };
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   const paths = new THREE.Group();
-  paths.add(mk([V(-47, Y, 70), V(-47, Y, 4), V(43, Y, 4), V(43, Y + 0.6, -60)], lightMat));
-  paths.add(mk([V(43.8, Y - 0.6, 80), V(43.8, Y - 0.6, -60)], lightMat2));
+  paths.add(mk([V(RX, Y, 70), V(RX, Y, 4), V(VX, Y, 4), V(VX, Y + 0.6, -60)], lightMat));
+  paths.add(mk([V(VX + 0.8, Y - 0.6, 80), V(VX + 0.8, Y - 0.6, -60)], lightMat2));
   g.add(paths);
 
   rig.add(g, 'rf', [0, 60, 0]);

@@ -68,95 +68,138 @@ function elementGeometry(e, zFront) {
 export function buildLens(M, rig) {
   const lens = new THREE.Group();
   lens.name = 'lens';
-  lens.position.set(0, D.lensY, D.mountZ);
+  lens.position.set(D.lensX, D.lensY, D.mountZ);
 
-  // ---- Barrel ---------------------------------------------------------------
+  // ---- Barrel (measured from a top-view photograph) -----------------------------
+  // z from the mount flange: chrome bayonet 0–2.8 · DOF ring 2.8–18.2 · focus ring
+  // 18.2–32.1 · aperture ring 32.6–37.6 · index ring 37.6–38.8 · hood 38.8–53.8.
+  // Angles θ below: 180° is the top of the lens, increasing toward the -X side.
+  const U = (thetaDeg) => thetaDeg / 360;
+  const ORANGE = '#e9a23b', WHITE = '#f1eee6';
+
   const bayonet = new THREE.Group();
   bayonet.add(mesh(G.latheZ([
-    [18.4, -2.8], [21.2, -2.8], [21.2, 0], [24.6, 0], [24.6, 1.0], [24.2, 1.4], [18.4, 1.4], [18.4, -2.8],
+    [18.4, -2.8], [21.2, -2.8], [21.2, 0], [24.7, 0], [24.7, 2.4], [24.3, 2.8], [18.4, 2.8], [18.4, -2.8],
   ]), M.chromePolished));
   for (let i = 0; i < 3; i++) {
     bayonet.add(mesh(G.cylZ(22.6, -2.6, -1.6, { segments: 24, thetaStart: 0.4 + i * 2.094, thetaLength: 0.75 }), M.chromePolished));
   }
-  const redBead = mesh(new THREE.SphereGeometry(0.9, 16, 12), M.redEnamel);
-  redBead.position.set(0, 24.2, 0.9);
-  bayonet.add(redBead);
+  // Six-bit lens-code pattern on the bayonet rim.
+  for (let i = 0; i < 6; i++) {
+    const bit = mesh(new THREE.BoxGeometry(1.1, 0.6, 0.2), i % 2 ? M.white : M.matteBlack, { cast: false });
+    const a = -2.35 + i * 0.055;
+    bit.position.set(Math.cos(a) * 21.9, Math.sin(a) * 21.9, -2.81);
+    bit.rotation.z = a + Math.PI / 2;
+    bayonet.add(bit);
+  }
   lens.add(bayonet);
 
   const rear = mesh(G.latheZ([[16.6, -16], [18.2, -16], [18.2, -2.8], [16.6, -2.8], [16.6, -16]]), M.anodized);
   lens.add(rear);
 
-  const collar = mesh(G.ringZ(24.3, 21, 1.4, 4, 0.3), M.anodized);
-  lens.add(collar);
-
-  // Focus ring: finely grooved grip (no tab on the ASPH) and distance scale.
-  const focus = new THREE.Group();
-  focus.name = 'focusRing';
-  focus.add(mesh(G.ridgedRingZ({ rOuter: 25.8, rInner: 21.4, z0: 4, z1: 10, ridges: 64, depth: 0.55, profile: 'scallop', chamfer: 0.6 }), M.anodized));
-  focus.add(mesh(G.ringZ(25.2, 21.4, 10, 15, 0.25), M.anodized));
-  const dist = [['0.7', 0.18], ['0.8', 0.26], ['1', 0.33], ['1.5', 0.4], ['2', 0.44], ['3', 0.48], ['5', 0.515], ['∞', 0.56]];
-  const distFt = [['2.5', 0.2], ['3', 0.28], ['4', 0.35], ['5', 0.39], ['7', 0.43], ['10', 0.47], ['15', 0.5], ['30', 0.535]];
-  focus.add(band(M, 25.22, 10.2, 14.8, T.ringBand({
-    items: [
-      ...dist.map(([t, u]) => ({ text: t, u, y: 0.3, size: 42, color: '#f1eee6' })),
-      ...distFt.map(([t, u]) => ({ text: t, u, y: 0.74, size: 34, color: '#e2b43a' })),
-      { text: 'm', u: 0.61, y: 0.3, size: 32, color: '#f1eee6' },
-      { text: 'ft', u: 0.61, y: 0.74, size: 30, color: '#e2b43a' },
-    ],
-  })));
-  lens.add(focus);
-
-  // Depth-of-field scale (fixed) with the red index.
+  // Depth-of-field ring (fixed): rear taper, "50", DOF fan, red mounting dot.
   const dof = new THREE.Group();
   dof.name = 'dofRing';
-  dof.add(mesh(G.ringZ(24.5, 21.2, 15, 18, 0.25), M.anodized));
-  const dofItems = [];
-  ['16', '8', '4', '', '4', '8', '16'].forEach((t, i) => { if (t) dofItems.push({ text: t, u: 0.5 + (i - 3) * 0.018, y: 0.45, size: 30 }); });
-  dof.add(band(M, 24.52, 15.1, 17.9, T.ringBand({
-    height: 96,
-    items: dofItems,
-    ticks: [{ u: 0.5, y0: 0.1, y1: 0.95, w: 6, color: '#d8242b' }, ...[-3, -2, -1, 1, 2, 3].map((k) => ({ u: 0.5 + k * 0.018, y0: 0.72, y1: 1, w: 3 }))],
+  dof.add(mesh(G.latheZ([[21.5, 2.8], [25.2, 2.8], [26.4, 4.2], [27.0, 5.8], [27.0, 17.8], [26.7, 18.2], [21.5, 18.2], [21.5, 2.8]], 160), M.anodized));
+  const dofNums = [['2', 0], ['4', 6.1], ['8', 13.8], ['11', 20.6], ['16', 27.8]];
+  const dofItems = [], dofLines = [];
+  for (const [t, d] of dofNums) {
+    for (const sgn of d ? [-1, 1] : [1]) {
+      const u = U(180 + sgn * d);
+      dofItems.push({ text: t, u, y: 0.78, size: 44, color: WHITE });
+      if (d) {
+        const k = dofNums.findIndex(([tt]) => tt === t);
+        const uc = 0.5 + sgn * k * 0.0016;
+        dofLines.push({ pts: [[u, 0.6], [u, 0.52], [uc, 0.24], [uc, 0.04]], w: 2.2 });
+      }
+    }
+  }
+  dofItems.push({ text: '50', u: U(139.5), y: 0.72, size: 78, color: ORANGE, weight: 600 });
+  dof.add(band(M, 27.02, 6.0, 17.6, T.ringBand({
+    height: 160, items: dofItems, lines: dofLines,
+    ticks: [{ u: 0.5, y0: 0.0, y1: 0.28, w: 3 }],
   })));
+  const redDot = mesh(new THREE.SphereGeometry(1.15, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.redEnamel);
+  const rdTheta = 242 * Math.PI / 180;
+  redDot.position.set(27.0 * Math.sin(rdTheta), -27.0 * Math.cos(rdTheta), 11.3);
+  redDot.lookAt(redDot.position.clone().multiplyScalar(2).setZ(11.3));
+  redDot.rotateX(Math.PI / 2);
+  dof.add(redDot);
   lens.add(dof);
 
-  // Aperture ring with f-numbers and fine knurling.
+  // Focus ring: smooth barrel carrying the feet (orange) and metre (white) scales.
+  const focus = new THREE.Group();
+  focus.name = 'focusRing';
+  focus.add(mesh(G.latheZ([[21.6, 18.4], [26.6, 18.4], [27.0, 18.8], [27.0, 31.7], [26.6, 32.1], [21.6, 32.1], [21.6, 18.4]], 160), M.anodized));
+  const metres = [['∞', 180], ['5', 168.5], ['3', 160.2], ['2', 149.6], ['1.5', 138.6], ['1.2', 125.4], ['1', 115], ['0.8', 105], ['0.7', 96.5]];
+  const feet = [['∞', 180], ['25', 172.3], ['10', 161.7], ['6', 148], ['5', 140], ['4', 130.4], ['3.5', 119], ['3', 111], ['2.5', 101]];
+  focus.add(band(M, 27.02, 19.0, 26.6, T.ringBand({
+    height: 180,
+    items: [
+      ...metres.map(([t, a]) => ({ text: t, u: U(a), y: 0.78, size: 50, color: WHITE })),
+      ...feet.map(([t, a]) => ({ text: t, u: U(a), y: 0.33, size: 50, color: ORANGE })),
+      { text: 'm', u: U(194), y: 0.78, size: 46, color: WHITE },
+      { text: 'feet', u: U(195.5), y: 0.33, size: 46, color: ORANGE },
+    ],
+  })));
+  // Low finger rest on the photographer's right-hand side.
+  const rest = mesh(G.extrudeForward(G.roundedRectShape(4.6, 2.4, 1.1, 0, 0), 6.2, 0.9), M.anodized);
+  rest.position.set(-27.9, 0, 18.9);
+  rest.rotation.z = Math.PI / 2;
+  focus.add(rest);
+  lens.add(focus);
+
+  // Aperture ring: knurled over half its circumference, f-numbers on the rest.
   const ap = new THREE.Group();
   ap.name = 'apertureRing';
-  ap.add(mesh(G.ringZ(24.8, 21.2, 18, 20.6, 0.25), M.anodized));
-  const fnums = ['1.4', '2', '2.8', '4', '5.6', '8', '11', '16'];
-  ap.add(band(M, 24.82, 18.1, 20.5, T.ringBand({
-    height: 96,
-    items: fnums.map((t, i) => ({ text: t, u: 0.5 - i * 0.03, y: 0.5, size: 34, color: i === 0 ? '#e2b43a' : '#f1eee6' })),
-  })));
-  ap.add(mesh(G.ridgedRingZ({ rOuter: 25.2, rInner: 21.2, z0: 20.6, z1: 25, ridges: 110, depth: 0.32, chamfer: 0.4 }), M.anodized));
+  ap.add(mesh(G.ridgedRingZ({ rOuter: 27.4, rInner: 23.4, z0: 32.6, z1: 37.6, ridges: 150, depth: 0.45, chamfer: 0.4, arc: [-100 * Math.PI / 180, 81 * Math.PI / 180] }), M.anodized));
+  const apStart = 171, apLen = 179;
+  const fnums = [['1.4', 180], ['2', 193.7], ['2.8', 205.2], ['4', 223], ['5.6', 236.5], ['8', 253], ['11', 266], ['16', 280]];
+  const apBand = band(M, 27.06, 33.0, 37.2, T.ringBand({
+    width: 2048, height: 128,
+    items: fnums.map(([t, a]) => ({ text: t, u: (a - apStart) / apLen, y: 0.52, size: 60, color: WHITE })),
+  }));
+  apBand.geometry.dispose();
+  apBand.geometry = G.cylZ(27.06, 33.0, 37.2, { segments: 96, open: true, thetaStart: apStart * Math.PI / 180, thetaLength: apLen * Math.PI / 180 });
+  ap.add(apBand);
   lens.add(ap);
 
-  // Front barrel with engraved name ring.
+  // Index ring with the white aperture-index dot.
+  const idxRing = new THREE.Group();
+  idxRing.add(mesh(G.latheZ([[23.6, 37.6], [26.9, 37.6], [26.9, 38.5], [26.6, 38.8], [23.6, 38.8], [23.6, 37.6]], 160), M.anodized));
+  const idxDot = mesh(new THREE.SphereGeometry(0.55, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), M.white);
+  idxDot.position.set(0, 26.9, 38.15);
+  idxRing.add(idxDot);
+  lens.add(idxRing);
+
+  // Built-in hood, matte inside.
+  const hood = new THREE.Group();
+  hood.name = 'hood';
+  hood.add(mesh(G.latheZ([[24.4, 38.8], [25.7, 38.8], [25.7, 53.2], [25.3, 53.8], [24.4, 53.8], [24.4, 38.8]], 160), M.anodized));
+  hood.add(mesh(G.cylZ(24.38, 38.8, 53.8, { segments: 128, open: true }), M.matteBlack));
+  lens.add(hood);
+
+  // Front bezel with the engraved name ring, just ahead of the front element.
   const front = new THREE.Group();
-  front.name = 'frontBarrel';
-  front.add(mesh(G.latheZ([[20.6, 25], [23.6, 25], [23.6, 26], [23.0, 35.2], [22.5, 36.0], [20.6, 36.0], [20.6, 25]]), M.anodized));
-  const nameRing = mesh(new THREE.RingGeometry(20.7, 22.4, 160, 1), new THREE.MeshPhysicalMaterial({
+  front.name = 'frontBezel';
+  front.add(mesh(G.latheZ([[20.4, 36.4], [24.3, 36.4], [24.3, 38.2], [20.4, 38.2], [20.4, 36.4]], 128), M.anodized));
+  const nameRing = mesh(new THREE.RingGeometry(20.5, 24.2, 160, 1), new THREE.MeshPhysicalMaterial({
     map: T.polarText({
       size: 2048, base: '#0c0c0d',
       items: [
-        { text: 'SUMMILUX-M 1:1.4/50 ASPH.', angle: -0.25, r: 0.955, size: 46, weight: 600, arc: true, spacing: 0.029, color: '#efece4' },
-        { text: 'E46  ·  4 012 857', angle: 2.35, r: 0.955, size: 40, weight: 500, arc: true, spacing: 0.03, color: '#bdbab2' },
+        { text: 'LEICA', angle: 0, r: 0.915, size: 64, weight: 600, arc: true, spacing: 0.06, color: '#efece4' },
+        { text: 'SUMMILUX-M 1:1.4/50 ASPH.', angle: 1.75, r: 0.915, size: 58, weight: 500, arc: true, spacing: 0.043, color: '#efece4' },
+        { text: 'E46', angle: 3.95, r: 0.915, size: 58, weight: 500, arc: true, spacing: 0.05, color: '#efece4' },
+        { text: '4659050', angle: 4.95, r: 0.915, size: 58, weight: 500, arc: true, spacing: 0.045, color: '#efece4' },
       ],
     }),
     metalness: 0.3, roughness: 0.4, clearcoat: 0.4,
   }));
-  nameRing.position.z = 36.01;
+  nameRing.position.z = 38.21;
   front.add(nameRing);
   lens.add(front);
 
-  // Built-in telescopic hood (retracted), with its knurled locking band.
-  const hood = new THREE.Group();
-  hood.name = 'hood';
-  hood.add(mesh(G.latheZ([[24.0, 25.4], [25.6, 25.4], [25.6, 36.2], [25.2, 36.8], [24.0, 36.8], [24.0, 25.4]], 160), M.anodized));
-  hood.add(mesh(G.ridgedRingZ({ rOuter: 25.9, rInner: 24.0, z0: 25.6, z1: 28.2, ridges: 120, depth: 0.25, chamfer: 0.25 }), M.anodized));
-  lens.add(hood);
-
-  const baffle = mesh(G.latheZ([[19.4, 29], [20.6, 29], [20.6, 35.9], [19.4, 35.9], [19.4, 29]], 96), M.matteBlack);
+  const baffle = mesh(G.latheZ([[19.4, 30], [20.4, 30], [20.4, 36.4], [19.4, 36.4], [19.4, 30]], 96), M.matteBlack);
   lens.add(baffle);
 
   // ---- Optics -----------------------------------------------------------------
@@ -177,7 +220,7 @@ export function buildLens(M, rig) {
   optics.name = 'optics';
   lens.add(optics);
   const elements = [];
-  let z = 35.2;
+  let z = 37.2;
   let stopZ = 16;
   let cementTo = null;
   formula.forEach((e) => {
@@ -271,31 +314,20 @@ export function buildLens(M, rig) {
   // Parked below frame while the body chapters play out.
   rig.add(lens, 'lensPark', [0, -270, 160], [0.3, 0, 0]);
   rig.floaty(lens, 1.2, 0.5);
-  rig.add(front, 'lensInner', [0, 0, 64]);
-  rig.add(hood, 'lensInner', [0, 0, 82]);
-  rig.add(baffle, 'lensInner', [0, 0, 50]);
-  rig.add(ap, 'lensInner', [0, 0, 44]);
-  rig.add(dof, 'lensInner', [0, 0, 30]);
-  rig.add(focus, 'lensInner', [0, 0, -34]);
-  rig.add(collar, 'lensInner', [0, 0, -42]);
-  rig.add(bayonet, 'lensInner', [0, 0, -52]);
-  rig.add(rear, 'lensInner', [0, 0, -62]);
+  rig.add(hood, 'lensInner', [0, 0, 66]);
+  rig.add(idxRing, 'lensInner', [0, 0, 58]);
+  rig.add(front, 'lensInner', [0, 0, 44]);
+  rig.add(baffle, 'lensInner', [0, 0, 38]);
+  rig.add(ap, 'lensInner', [0, 0, 50]);
+  rig.add(focus, 'lensInner', [0, 0, -38]);
+  rig.add(dof, 'lensInner', [0, 0, -52]);
+  rig.add(bayonet, 'lensInner', [0, 0, -64]);
+  rig.add(rear, 'lensInner', [0, 0, -76]);
   elements.forEach((el) => {
     rig.add(el, 'iris', [0, 0, (el.userData.zc - stopZ) * 0.9]);
     rig.add(el, 'spreadLens', [0, 0, (el.userData.zc - stopZ) * 0.5]);
   });
   rig.add(iris, 'iris', [0, -58, 0], [0, 0.25, 0]);
-
-  rig.anchor(front, 'frontBarrel', [0, 23.4, 30]);
-  rig.anchor(ap, 'apertureRing', [0, 25, 22]);
-  rig.anchor(focus, 'focusRing', [0, -30, 7]);
-  rig.anchor(dof, 'dofRing', [0, 24.5, 16.5]);
-  rig.anchor(bayonet, 'bayonet', [0, 24.6, 0.6]);
-  rig.anchor(elements[0], 'element1', [0, 12, 36]);
-  rig.anchor(elements[2], 'doublet', [0, -15, elements[2].userData.zc]);
-  rig.anchor(elements[7], 'asph', [0, -13, elements[7].userData.zc]);
-  rig.anchor(elements[4], 'doublet2', [0, 14, elements[4].userData.zc]);
-  rig.anchor(iris, 'iris', [0, 19, 0]);
 
   return { lens, focus, ap, iris, blades, rays, rayMat, elements, stopZ };
 }

@@ -214,6 +214,13 @@ async function main() {
       target.z + dist * Math.cos(elR) * Math.cos(azR),
     );
     camera.lookAt(target);
+    // Debug hook for reference comparisons: fixed camera, no drift.
+    const dbg = window.__camOverride;
+    if (dbg) {
+      camera.position.set(...dbg.pos);
+      camera.lookAt(...dbg.target);
+      if (camera.fov !== dbg.fov) { camera.fov = dbg.fov; camera.updateProjectionMatrix(); }
+    }
 
     // Drag spin eases back to the choreographed angle after a pause.
     if (!dragging) {

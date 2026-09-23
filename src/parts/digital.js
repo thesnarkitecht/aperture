@@ -45,6 +45,7 @@ function passives(g, M, x0, x1, y0, y1, z, n, seed, facing = 1) {
 export function buildSensor(M, rig) {
   const g = new THREE.Group();
   g.name = 'sensor';
+  g.position.x = D.lensX; // centred on the optical axis
   const cy = D.lensY;
   const zf = D.filmZ;
 
@@ -136,6 +137,7 @@ export function buildSensor(M, rig) {
 export function buildShutter(M, rig) {
   const g = new THREE.Group();
   g.name = 'shutter';
+  g.position.x = D.lensX;
   const cy = D.lensY;
   const zf = D.filmZ + 3.4;
 
@@ -355,11 +357,12 @@ export function buildBattery(M, rig, opts) {
   const g = new THREE.Group();
   g.name = 'battery';
   const y0 = D.baseY0;
-  const pack = mesh(G.extrudeUp(G.roundedRectShape(w, d, 2.2), h - 3, 0.6), M.battery);
-  pack.position.set(x, y0 + 3, z);
+  const capH = D.bodyY0 - D.baseY0; // the battery base is flush with the bottom plate
+  const pack = mesh(G.extrudeUp(G.roundedRectShape(w, d, 2.2), h - capH, 0.6), M.battery);
+  pack.position.set(x, y0 + capH, z);
   g.add(pack);
   // Metal bottom cap that forms part of the camera base, with release notch.
-  const cap = mesh(G.extrudeUp(G.roundedRectShape(w + 1.6, d + 1.6, 2.8), 3.2, 0.7), M.body);
+  const cap = mesh(G.extrudeUp(G.roundedRectShape(w + 1.6, d + 1.6, 2.8), capH, 0.7), M.body);
   cap.position.set(x, y0, z);
   g.add(cap);
   const notch = mesh(new THREE.BoxGeometry(w * 0.5, 0.5, 1.6), M.matteBlack, { cast: false });
@@ -390,7 +393,7 @@ export function buildBattery(M, rig, opts) {
     roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2,
   }));
   label.rotation.set(0, -Math.PI / 2, Math.PI / 2);
-  label.position.set(x - w / 2 - 0.02, y0 + 3 + (h - 3) / 2, z);
+  label.position.set(x - w / 2 - 0.02, y0 + capH + (h - capH) / 2, z);
   g.add(label);
 
   rig.add(g, 'battery', [0, -78, 0]);

@@ -51,7 +51,7 @@ function tex(c, { srgb = false, repeat = 1, aniso = 8 } = {}) {
 
 // Vulcanite: a tight, irregular pebble grain made from tiled Worley noise.
 // Returns a normal map plus a roughness map (pebble crowns are worn smoother).
-export function leatherMaps(size = 1024, cells = 44) {
+export function leatherMaps(size = 1024, cells = 24) {
   const pts = [];
   for (let j = 0; j < cells; j++) {
     for (let i = 0; i < cells; i++) {
@@ -74,12 +74,14 @@ export function leatherMaps(size = 1024, cells = 44) {
           if (d < f1) { f2 = f1; f1 = d; amp = p[2]; } else if (d < f2) f2 = d;
         }
       }
-      const edge = Math.min(1, (f2 - f1) * 2.2);
-      const crown = Math.max(0, 1 - f1 * 1.25);
-      h[y * size + x] = Math.sqrt(edge) * amp * 0.8 + crown * 0.25 + hash(x, y, 7) * 0.06;
+      // Deep crevices between rounded, slightly flattened pebbles, plus fine grain.
+      const edge = Math.min(1, (f2 - f1) * 1.8);
+      const crown = Math.max(0, 1 - f1 * 1.1);
+      const fine = (hash(x >> 1, y >> 1, 7) + hash(x, y, 8)) * 0.05;
+      h[y * size + x] = Math.pow(edge, 0.45) * amp * 0.85 + crown * 0.22 + fine;
     }
   }
-  const normal = tex(heightToNormal(h, size, 3.2));
+  const normal = tex(heightToNormal(h, size, 4.2));
   const rc = canvas(size);
   const ctx = rc.getContext('2d');
   const img = ctx.createImageData(size, size);
@@ -159,11 +161,26 @@ const FONT_SERIF = '"Instrument Serif", "Times New Roman", serif';
 
 // A band that wraps around a cylinder: u = circumference, v = ring width.
 // items: [{ u, text, color, size, weight, font, align, y }]
-export function ringBand({ width = 4096, height = 128, base = '#0d0d0e', items = [], ticks = [] }) {
+export function ringBand({ width = 4096, height = 128, base = '#0d0d0e', items = [], ticks = [], lines = [], dots = [] }) {
   const c = canvas(width, height);
   const ctx = c.getContext('2d');
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, width, height);
+  // Polylines in (u, v) space, e.g. the depth-of-field fan.
+  for (const l of lines) {
+    ctx.strokeStyle = l.color || '#e8e6e0';
+    ctx.lineWidth = l.w || 3;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    l.pts.forEach(([u, v], i) => (i ? ctx.lineTo(u * width, v * height) : ctx.moveTo(u * width, v * height)));
+    ctx.stroke();
+  }
+  for (const d of dots) {
+    ctx.fillStyle = d.color || '#e8e6e0';
+    ctx.beginPath();
+    ctx.arc(d.u * width, d.v * height, d.r, 0, TAU);
+    ctx.fill();
+  }
   for (const t of ticks) {
     ctx.fillStyle = t.color || '#e8e6e0';
     ctx.fillRect(t.u * width - (t.w || 3) / 2, t.y0 * height, t.w || 3, (t.y1 - t.y0) * height);
@@ -218,6 +235,10 @@ export function polarText({ size = 1024, base = null, items = [], rings = [] }) 
       }
     } else if (it.tick) {
       ctx.fillRect(-it.tick / 2, -it.r * cx, it.tick, it.len * cx);
+    } else if (it.radial) {
+      // Baseline along the radius, reading from the centre outward.
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(it.text, it.r * cx, 0);
     } else {
       ctx.fillText(it.text, 0, -it.r * cx);
     }

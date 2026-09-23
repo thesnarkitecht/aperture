@@ -43,6 +43,45 @@ export function circlePath(p, r, cx = 0, cy = 0, reverse = false) {
   return p;
 }
 
+// Plan outline (x, z) of an M body: straight front and back, shallow
+// elliptical ends (semi-axis a along X). Either end may be square instead,
+// and the right end may carry a circular notch (the ISO-dial well).
+export function planShape({ x0, x1, d, a, roundL = true, roundR = true, notch = null }) {
+  const h = d / 2;
+  const s = new THREE.Shape();
+  const xl = roundL ? x0 + a : x0, xr = roundR ? x1 - a : x1;
+  s.moveTo(xl, -h);
+  s.lineTo(xr, -h);
+  if (roundR) {
+    s.absellipse(x1 - a, 0, a, h, -Math.PI / 2, Math.PI / 2, false);
+  } else if (notch) {
+    const nx = notch.x, nz = -notch.z, r = notch.r;
+    const dz = Math.sqrt(Math.max(0, r * r - (x1 - nx) * (x1 - nx)));
+    s.lineTo(x1, nz - dz);
+    const a0 = Math.atan2(-dz, x1 - nx) + Math.PI * 2, a1 = Math.atan2(dz, x1 - nx);
+    s.absarc(nx, nz, r, a0, a1, true);
+    s.lineTo(x1, h);
+  } else {
+    s.lineTo(x1, h);
+  }
+  s.lineTo(xl, h);
+  if (roundL) s.absellipse(x0 + a, 0, a, h, Math.PI / 2, Math.PI * 1.5, false);
+  else s.lineTo(x0, -h);
+  return s;
+}
+
+// Half of an elliptical ring in plan (an end wall / end skin). side = +1 for +X.
+export function halfEllipseRing(aO, bO, aI, bI, cx, side) {
+  const s = new THREE.Shape();
+  const a0 = side > 0 ? -Math.PI / 2 : Math.PI / 2, a1 = a0 + Math.PI;
+  s.moveTo(cx + Math.cos(a0) * aO, Math.sin(a0) * bO);
+  s.absellipse(cx, 0, aO, bO, a0, a1, false);
+  s.lineTo(cx + Math.cos(a1) * aI, Math.sin(a1) * bI);
+  s.absellipse(cx, 0, aI, bI, a1, a0, true);
+  s.closePath();
+  return s;
+}
+
 // Extrude a plan-view shape (x, z) upward along +Y, spanning y in [0, h].
 // Bevels are kept inside the nominal outline.
 export function extrudeUp(shape, h, bevel = 0, curveSegments = 48, bevelSegments = 4) {
@@ -128,7 +167,7 @@ export function ringZ(rOuter, rInner, z0, z1, chamfer = 0.3, segments = 128) {
 
 // Knurled / scalloped ring along Z. Ridges run parallel to the axis.
 // profile: 'knurl' (sharp V), 'scallop' (rounded lobes)
-export function ridgedRingZ({ rOuter, rInner, z0, z1, ridges = 60, depth = 0.6, profile = 'knurl', chamfer = 0.5 }) {
+export function ridgedRingZ({ rOuter, rInner, z0, z1, ridges = 60, depth = 0.6, profile = 'knurl', chamfer = 0.5, arc = null }) {
   const perRidge = profile === 'scallop' ? 12 : 4;
   const segs = ridges * perRidge;
   const L = z1 - z0;
@@ -140,12 +179,24 @@ export function ridgedRingZ({ rOuter, rInner, z0, z1, ridges = 60, depth = 0.6, 
   const pos = [];
   const uv = [];
   const idx = [];
+  // Optional arc: ridges only within [start, end]; elsewhere a smooth land
+  // at the ridge-valley radius, blended over a few degrees.
+  const mask = (ang) => {
+    if (!arc) return 1;
+    const [a0, a1] = arc;
+    let t = ((ang - a0) % TAU + TAU) % TAU;
+    const span = ((a1 - a0) % TAU + TAU) % TAU;
+    const blend = 0.06;
+    if (t > span) return 0;
+    return Math.min(1, t / blend, (span - t) / blend);
+  };
   const rOf = (i, k) => {
     const t = (i / perRidge) % 1;
     let f;
     if (profile === 'scallop') f = 1 - Math.pow(Math.sin(t * Math.PI), 0.7);
     else f = Math.abs(t - 0.5) * 2;
-    return rOuter - rOff[k] - depth * f * ridgeAmt[k];
+    const m = mask((i / segs) * TAU);
+    return rOuter - rOff[k] - depth * (m * f + (1 - m) * 0.85) * ridgeAmt[k];
   };
   // Outer surface grid.
   for (let k = 0; k < zs.length; k++) {
