@@ -1,2 +1,0 @@
-import { Photo } from './TimelineGallery';
-export function Lightbox({ photo, onClose, onExif }: { photo: Photo; onClose: () => void; onExif: () => void }) { return <div className="lightbox" role="dialog"><button className="close-lightbox" onClick={onClose}>×</button><img src={photo.src} alt={photo.title} /><div className="lightbox-meta"><div><p className="eyebrow">{photo.date}</p><h2>{photo.title}</h2><p>{photo.location} · {photo.camera}</p></div><button className="details-button" onClick={onExif}>ⓘ Details</button></div></div>; }
