@@ -105,9 +105,9 @@ varying float vPath;
 #include <aw_lighting>
 void main() {
   float patchN = texture(uNoise2D, vWorld.xz * 0.012).r;
-  vec3 baseC = vec3(0.05, 0.09, 0.02);
-  vec3 tipA = vec3(0.16, 0.30, 0.05);
-  vec3 tipB = vec3(0.36, 0.38, 0.09);
+  vec3 baseC = vec3(0.10, 0.22, 0.07);
+  vec3 tipA = vec3(0.30, 0.52, 0.12);
+  vec3 tipB = vec3(0.62, 0.64, 0.20);
   vec3 tip = mix(tipA, tipB, smoothstep(0.35, 0.75, patchN) * 0.8 + vVar * 0.2);
   AwSurface s = aw_defaultSurface();
   s.albedo = mix(baseC, tip, smoothstep(0.0, 1.0, vT));
@@ -116,7 +116,7 @@ void main() {
   s.wrap = 0.6;
   s.sssColor = vec3(0.9, 1.0, 0.45);
   s.translucency = 0.55;
-  s.ao = mix(0.35, 1.0, vT);
+  s.ao = mix(0.6, 1.0, vT);
   s.specular = 0.35;
   s.rim = 0.15;
   vec3 V = normalize(cameraPosition - vWorld);

@@ -24,7 +24,7 @@ export const SUN_DIR = new THREE.Vector3(
 ).normalize();
 
 /** Direct sun radiance (linear HDR) — warm, reddened by the long atmospheric path. */
-export const SUN_COLOR = new THREE.Color(1.0, 0.56, 0.27).multiplyScalar(7.5);
+export const SUN_COLOR = new THREE.Color(1.0, 0.74, 0.5).multiplyScalar(6.2);
 
 /** Centre of the distant-world heightmap: under the glide path, towards the sun. */
 export const TERRAIN_CENTER = new THREE.Vector2(SUN_DIR.x, SUN_DIR.z).normalize().multiplyScalar(6500);

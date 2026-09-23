@@ -161,6 +161,11 @@ class App {
       }
     }
 
+    await this.tick('building the hamlets', 0.88);
+    const settlements = new Props();
+    await settlements.buildSettlements(this.island, this.world as unknown as { heightAt(x: number, z: number): number; isWater?(x: number, z: number): boolean } | null);
+    this.scene.add(settlements.group);
+
     await this.tick('lighting the sunset', 0.9);
     this.pipeline = new Pipeline(this.renderer, q, noise);
     this.shadows = new Shadows(q.shadowNear, q.shadowFar);

@@ -124,7 +124,7 @@ void main() {
         float cv = aw_cloudCoverage(fp.xz, tw);
         far += step(fp.y, aw_cloudTop(cv, tw)) * smoothstep(0.5, 0.85, cv);
       }
-      float sigma = 0.045;
+      float sigma = 0.075;
       float hf = clamp((p.y - uCloudLayer.x) / (uCloudLayer.y - uCloudLayer.x), 0.0, 1.0);
       vec3 sunL = vec3(0.0);
       float att = 1.0, contrib = 1.0, pa = 1.0;
@@ -133,9 +133,15 @@ void main() {
         sunL += contrib * exp(-od * sigma * att - far * 1.1 * att) * ph;
         att *= 0.35; contrib *= 0.55; pa *= 0.6;
       }
-      float powder = 1.0 - exp(-dens * 12.0);
-      vec3 amb = mix(skyHor * 0.35 + vec3(0.03, 0.025, 0.03), skyTop, smoothstep(0.0, 1.0, hf));
-      vec3 S = uSunColor * sunL * mix(0.35, 1.0, powder) * 0.32 + amb * (0.45 + 0.55 * hf);
+      // Stylised cloud lighting: a crisp lit/shadow split, warm peach-white light, lavender
+      // shade, a pink terminator and a thin silver lining towards the sun.
+      float tl = exp(-od * sigma - far * 1.1);
+      float band = smoothstep(0.16, 0.3, tl);
+      float term = smoothstep(0.05, 0.16, tl) * (1.0 - smoothstep(0.16, 0.34, tl));
+      vec3 litC = uSunColor * vec3(1.0, 0.95, 0.9) * 0.4;
+      vec3 shadeC = mix(vec3(0.62, 0.58, 0.95), vec3(1.0, 0.86, 1.15), hf) * mix(0.62, 1.0, hf);
+      vec3 S = mix(shadeC, litC, band) + uSunColor * vec3(1.0, 0.5, 0.55) * term * 0.1
+             + uSunColor * sunL * 0.035 * band;
       float ext = dens * sigma;
       float Tr = exp(-ext * dt);
       vec3 Sint = S * (1.0 - Tr);
@@ -164,6 +170,8 @@ uniform mat4 uInvViewProj;
 uniform vec3 uCamPos;
 uniform float uSunSize;
 uniform sampler2D uNoise2D;
+uniform vec2 uNearFar;
+uniform vec2 uTexel;
 #include <aw_common>
 #include <aw_atmosphere>
 
@@ -207,7 +215,18 @@ void main() {
     mask = 1.0;
   } else {
     float dist = length(wp.xyz - ro);
-    col = aw_applyAerial(sc.rgb, ro, rd, dist);
+    // Ink outline: darken silhouettes where the depth steps away sharply behind a surface.
+    float zc = uNearFar.x * uNearFar.y / (uNearFar.y - depth * (uNearFar.y - uNearFar.x));
+    float jump = 0.0;
+    for (int i = 0; i < 4; i++) {
+      vec2 o = vec2(i == 0 ? 1.0 : i == 1 ? -1.0 : 0.0, i == 2 ? 1.0 : i == 3 ? -1.0 : 0.0) * uTexel;
+      float dn = texture(uDepth, uv + o).r;
+      float zn = uNearFar.x * uNearFar.y / (uNearFar.y - dn * (uNearFar.y - uNearFar.x));
+      jump = max(jump, (zn - zc) / zc);
+    }
+    float ink = smoothstep(0.06, 0.25, jump) * (1.0 - smoothstep(60.0, 400.0, zc));
+    vec3 base = mix(sc.rgb, sc.rgb * vec3(0.28, 0.22, 0.3), ink * 0.85);
+    col = aw_applyAerial(base, ro, rd, dist);
   }
 
   // Depth-aware upsample of the low-resolution clouds.
@@ -393,8 +412,8 @@ export class Pipeline {
     grain: 0.022,
     fade: 0,
     fadeColor: new THREE.Color(0, 0, 0),
-    saturation: 1.08,
-    contrast: 1.04,
+    saturation: 1.12,
+    contrast: 0.97,
   };
   private sceneRT!: THREE.WebGLRenderTarget;
   private cloudRT!: THREE.WebGLRenderTarget;
@@ -441,6 +460,8 @@ export class Pipeline {
       uInvViewProj: { value: this.invViewProj },
       uCamPos: { value: new THREE.Vector3() },
       uSunSize: { value: 0.6 * (Math.PI / 180) },
+      uNearFar: { value: new THREE.Vector2(0.25, 160000) },
+      uTexel: { value: new THREE.Vector2(1, 1) },
     } as Record<string, THREE.IUniform>);
     this.downMat = passMaterial(BLOOM_DOWN, { uSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uPrefilter: { value: 0 } });
     this.upMat = passMaterial(BLOOM_UP, {
@@ -567,6 +588,8 @@ export class Pipeline {
     mu.uDepth.value = this.sceneRT.depthTexture;
     mu.uClouds.value = this.cloudRT.texture;
     mu.uCamPos.value.copy(camera.position);
+    mu.uNearFar.value.set(camera.near, camera.far);
+    mu.uTexel.value.set(1 / this.width, 1 / this.height);
     this.pass(this.compMat, this.compRT);
 
     // 4. Overlay particles

@@ -58,7 +58,6 @@ export class Island {
     this.group.add(mesh);
     this.heightTexture = this.bakeTexture();
     this.addRoots();
-    this.addRocks();
   }
 
   private buildPath(): void {
@@ -231,18 +230,21 @@ export class Island {
           float n3 = texture(uNoise2D, vec2(P.x + P.z, P.y) * 0.02).r;
           float top = smoothstep(0.55, 0.85, N.y) * (1.0 - vExtra.y * 0.7);
           // Grass ground beneath the blades, dirt path, rock sides with strata.
-          vec3 grass = mix(vec3(0.10, 0.17, 0.035), vec3(0.24, 0.27, 0.07), n1) * (0.8 + 0.4 * n2);
-          vec3 dirt = mix(vec3(0.24, 0.17, 0.10), vec3(0.34, 0.26, 0.17), n2);
+          // Painterly: broad colour patches, no fine speckle.
+          vec3 grass = mix(vec3(0.16, 0.34, 0.08), vec3(0.36, 0.48, 0.12), smoothstep(0.35, 0.65, n1));
+          vec3 dirt = mix(vec3(0.46, 0.34, 0.22), vec3(0.56, 0.44, 0.3), smoothstep(0.4, 0.6, n2));
           vec3 ground = mix(grass, dirt, smoothstep(0.35, 0.8, vExtra.x + (n2 - 0.5) * 0.4));
           float strata = sin(P.y * 0.9 + n3 * 6.0) * 0.5 + 0.5;
-          vec3 rock = mix(vec3(0.13, 0.115, 0.11), vec3(0.25, 0.22, 0.19), strata * 0.6 + n3 * 0.4);
-          rock = mix(rock, vec3(0.08, 0.075, 0.08), smoothstep(1600.0, 1420.0, P.y) * 0.7);
+          // Stylised banded rock: warm sandstone layers over cool slate towards the tip.
+          float bands = floor(strata * 3.0 + n3 * 1.5) / 3.0;
+          vec3 rock = mix(vec3(0.36, 0.30, 0.28), vec3(0.52, 0.44, 0.36), bands);
+          rock = mix(rock, vec3(0.24, 0.24, 0.32), smoothstep(1600.0, 1420.0, P.y) * 0.8);
           // Moss on up-facing ledges of the underside.
           float moss = smoothstep(0.3, 0.7, N.y) * vExtra.y * smoothstep(0.4, 0.7, n2);
           rock = mix(rock, vec3(0.10, 0.15, 0.05), moss);
           AwSurface s = aw_defaultSurface();
           s.albedo = mix(rock, ground, top);
-          vec3 bump = vec3(n2 - 0.5, 0.0, n3 - 0.5) * 0.35 * (1.0 - top * 0.8);
+          vec3 bump = vec3(n2 - 0.5, 0.0, n3 - 0.5) * 0.12 * (1.0 - top);
           s.normal = normalize(N + bump);
           s.roughness = mix(0.85, 0.95, top);
           s.ao = vExtra.z * mix(1.0, 0.75, top * (1.0 - vExtra.x));
@@ -360,7 +362,8 @@ export class Island {
     this.group.add(mesh);
   }
 
-  private addRocks(): void {
+  /** Optional procedural boulders (unused by default: the stylised CC0 rocks are used instead). */
+  addRocks(): void {
     const rand = mulberry32(1234);
     const base = new THREE.IcosahedronGeometry(1, 3);
     const p = base.attributes.position as THREE.BufferAttribute;

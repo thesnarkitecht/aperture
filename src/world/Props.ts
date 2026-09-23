@@ -11,7 +11,18 @@ import { mulberry32 } from '../core/noise';
 
 import { loadBinary } from '../character/ModelHero';
 
-const files = import.meta.glob('../assets/nature/*.glb', { query: '?url', import: 'default', eager: true }) as Record<string, string>;
+import { RUN_DIR } from './Island';
+import { SUN_DIR } from './WorldConfig';
+
+const files = {
+  ...import.meta.glob('../assets/nature/*.glb', { query: '?url', import: 'default', eager: true }),
+  ...import.meta.glob('../assets/buildings/*.glb', { query: '?url', import: 'default', eager: true }),
+} as Record<string, string>;
+
+interface WorldLike {
+  heightAt(x: number, z: number): number;
+  isWater?(x: number, z: number): boolean;
+}
 
 interface Model {
   geometry: THREE.BufferGeometry;
@@ -92,6 +103,98 @@ function propMaterial(map: THREE.Texture | null, sway: number, height: number): 
 
 export class Props {
   readonly group = new THREE.Group();
+
+  /** Places one instanced model at explicit transforms: [x, y, z, yaw, height]. */
+  private async place(name: string, items: [number, number, number, number, number][], shadow: boolean): Promise<void> {
+    if (!items.length) return;
+    const model = await loadModel(name);
+    if (!model) return;
+    const inst = new THREE.InstancedMesh(model.geometry, propMaterial(model.map, 0, model.height), items.length);
+    const m = new THREE.Matrix4();
+    items.forEach(([x, y, z, yaw, h], i) => {
+      const s = h / model.height;
+      m.compose(new THREE.Vector3(x, y - 0.05 * h, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0)), new THREE.Vector3(s, s, s));
+      inst.setMatrixAt(i, m);
+    });
+    inst.userData.castShadow = shadow;
+    inst.frustumCulled = false;
+    this.group.add(inst);
+  }
+
+  /**
+   * Signs of life: a windmill and a watch-tower on the sky island, and a riverside hamlet
+   * in the valley below that the glide passes over.
+   */
+  async buildSettlements(island: Island, world: WorldLike | null): Promise<void> {
+    const side = new THREE.Vector3(-RUN_DIR.z, 0, RUN_DIR.x);
+    const at = (along: number, lateral: number) => {
+      const p = RUN_DIR.clone().multiplyScalar(along).addScaledVector(side, lateral);
+      return [p.x, island.heightAt(p.x, p.z), p.z] as const;
+    };
+    const faceYaw = Math.atan2(RUN_DIR.x, RUN_DIR.z);
+    const wm = at(-78, 34);
+    if (isFinite(wm[1])) {
+      await this.place('building_windmill_blue', [[wm[0], wm[1], wm[2], faceYaw + 0.6, 15]], true);
+      island.colliders.push({ x: wm[0], z: wm[2], r: 5 });
+    }
+    const tw = at(70, -30);
+    if (isFinite(tw[1])) {
+      await this.place('building_tower_A_blue', [[tw[0], tw[1], tw[2], faceYaw - 0.4, 13]], true);
+      island.colliders.push({ x: tw[0], z: tw[2], r: 4 });
+    }
+    const we = at(-40, -14);
+    if (isFinite(we[1])) await this.place('building_well_blue', [[we[0], we[1], we[2], 0.3, 3.2]], true);
+
+    if (!world) return;
+    // Valley hamlet along the glide corridor.
+    const sx = new THREE.Vector2(SUN_DIR.x, SUN_DIR.z).normalize();
+    const px = new THREE.Vector2(-sx.y, sx.x);
+    const rand = mulberry32(77);
+    const kinds = ['building_home_A_blue', 'building_home_B_blue', 'building_home_A_blue', 'building_tavern_blue', 'building_market_blue', 'building_church_blue', 'building_lumbermill_blue', 'building_windmill_blue'];
+    const byKind = new Map<string, [number, number, number, number, number][]>();
+    const placed: THREE.Vector2[] = [];
+    let tries = 0;
+    while (placed.length < 26 && tries++ < 4000) {
+      const along = 1800 + rand() * 2600;
+      const lat = (rand() < 0.5 ? -1 : 1) * (160 + rand() * 900);
+      const x = sx.x * along + px.x * lat;
+      const z = sx.y * along + px.y * lat;
+      if (world.isWater?.(x, z)) continue;
+      const h = world.heightAt(x, z);
+      const slope = Math.abs(world.heightAt(x + 12, z) - h) + Math.abs(world.heightAt(x, z + 12) - h);
+      if (!isFinite(h) || h > 260 || slope > 5) continue;
+      const p = new THREE.Vector2(x, z);
+      if (placed.some((q) => q.distanceTo(p) < 38)) continue;
+      // Cluster into two hamlets.
+      const c1 = new THREE.Vector2(sx.x * 2600 + px.x * 420, sx.y * 2600 + px.y * 420);
+      const c2 = new THREE.Vector2(sx.x * 3900 - px.x * 520, sx.y * 3900 - px.y * 520);
+      if (Math.min(p.distanceTo(c1), p.distanceTo(c2)) > 260) continue;
+      placed.push(p);
+      const kind = kinds[Math.floor(rand() * kinds.length)];
+      const height = kind.includes('windmill') ? 26 : kind.includes('church') ? 24 : 15 + rand() * 5;
+      if (!byKind.has(kind)) byKind.set(kind, []);
+      byKind.get(kind)!.push([x, h, z, rand() * Math.PI * 2, height]);
+    }
+    // A watermill beside the river, a castle keep on a nearby rise.
+    for (let i = 0; i < 400; i++) {
+      const along = 2200 + i * 12;
+      const x = sx.x * along;
+      const z = sx.y * along;
+      for (const lat of [-40, 40, -80, 80, -140, 140]) {
+        const qx = x + px.x * lat;
+        const qz = z + px.y * lat;
+        if (!world.isWater?.(qx, qz) && world.isWater?.(qx - px.x * Math.sign(lat) * 30, qz - px.y * Math.sign(lat) * 30)) {
+          byKind.set('building_watermill_blue', [[qx, world.heightAt(qx, qz), qz, Math.atan2(px.x, px.y), 18]]);
+          i = 400;
+          break;
+        }
+      }
+    }
+    for (const [kind, items] of byKind) await this.place(kind, items, false);
+    const kx = sx.x * 5200 + px.x * 1300;
+    const kz = sx.y * 5200 + px.y * 1300;
+    await this.place('building_castle_blue', [[kx, world.heightAt(kx, kz), kz, 2.2, 60]], false);
+  }
 
   async build(island: Island): Promise<void> {
     const rand = mulberry32(2024);

@@ -117,7 +117,9 @@ void main() {
   float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
 
   // Richer saturation, especially in the warm band.
-  c = max(mix(vec3(lum), c, 1.18), 0.0);
+  c = max(mix(vec3(lum), c, 1.38), 0.0);
+  // Storybook sunset: a luminous peach-gold band hugging the horizon towards the sun.
+  c += vec3(1.0, 0.55, 0.28) * exp(-e / 0.05) * pow(towards, 3.0) * lum * 0.9;
 
   // Violet transition between the blue upper sky and the warm horizon.
   float violetBand = exp(-pow((e - 0.16) / 0.12, 2.0));

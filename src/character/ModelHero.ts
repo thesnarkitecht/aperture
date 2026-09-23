@@ -64,7 +64,8 @@ function heroMaterial(map: THREE.Texture | null): THREE.ShaderMaterial {
         float mx = max(albedo.r, max(albedo.g, albedo.b));
         float mn = min(albedo.r, min(albedo.g, albedo.b));
         float greenish = smoothstep(0.02, 0.12, albedo.g - max(albedo.r, albedo.b)) * step(0.0001, mx - mn);
-        vec3 recol = vec3(0.10, 0.22, 0.42) * (mx / 0.35) + vec3(0.02, 0.05, 0.06);
+        // Dark greens → deep indigo cloth, light greens → teal trim.
+        vec3 recol = mix(vec3(0.09, 0.12, 0.36), vec3(0.18, 0.56, 0.58), smoothstep(0.25, 0.55, mx)) * (0.7 + mx);
         albedo = mix(albedo, recol, greenish);
         AwSurface s = aw_defaultSurface();
         s.albedo = albedo * 1.05;

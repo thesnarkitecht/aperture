@@ -1,9 +1,10 @@
 // ---------------------------------------------------------------------------------------------
-// aw_lighting — stylised physically based shading shared by every lit surface.
-//   * GGX specular with Smith visibility and Schlick fresnel
-//   * wrapped diffuse with a subsurface tint (skin, foliage, cloth)
-//   * thin-surface translucency for backlit leaves, grass and fabric
-//   * warm sun rim light that makes silhouettes glow against the sunset
+// aw_lighting — painterly toon shading shared by every lit surface.
+//   * two-tone light ramp with a soft, narrow terminator (no realistic cosine falloff)
+//   * cool violet shadow tones instead of dark greys; cast shadows are crisped to shapes
+//   * warm rim band that outlines silhouettes against the sunset
+//   * small, hard-edged stylised highlights
+//   * thin-surface glow for backlit grass, leaves and fabric
 // ---------------------------------------------------------------------------------------------
 #ifndef AW_LIGHTING
 #define AW_LIGHTING
@@ -14,11 +15,11 @@ struct AwSurface {
   float roughness;
   float metallic;
   float ao;
-  float wrap;          // 0 = lambert, ~0.5 = soft wrap (skin/foliage)
-  vec3 sssColor;       // tint of light that wraps into the terminator
+  float wrap;          // softens the terminator (skin, foliage, cloth)
+  vec3 sssColor;       // tint of the terminator band
   float translucency;  // 0..1 thin-surface transmission
   float rim;           // rim light strength multiplier
-  float specular;      // specular scale (0 disables)
+  float specular;      // highlight scale (0 disables)
   vec3 emissive;
 };
 
@@ -38,79 +39,70 @@ AwSurface aw_defaultSurface() {
   return s;
 }
 
+// Microfacet helpers (used by water glints).
 float aw_D_GGX(float NoH, float a) {
   float a2 = a * a;
   float d = NoH * NoH * (a2 - 1.0) + 1.0;
   return a2 / (AW_PI * d * d + 1e-6);
 }
-
 float aw_V_Smith(float NoV, float NoL, float a) {
   float k = a * 0.5;
-  float gv = NoV / (NoV * (1.0 - k) + k);
-  float gl = NoL / (NoL * (1.0 - k) + k);
-  return gv * gl / max(4.0 * NoV * NoL, 1e-4);
+  return (NoV / (NoV * (1.0 - k) + k)) * (NoL / (NoL * (1.0 - k) + k)) / max(4.0 * NoV * NoL, 1e-4);
 }
-
 vec3 aw_F_Schlick(vec3 f0, float VoH) {
   return f0 + (1.0 - f0) * pow(1.0 - VoH, 5.0);
 }
 
-/**
- * Full lighting for one surface point. `sunVis` combines shadow maps, cloud shadow and
- * terrain self-shadowing. Returns outgoing radiance (before aerial perspective).
- */
+/** Shadow-side tint: cool lavender-blue, lighter under an open sky. */
+vec3 aw_shadowTint(vec3 P) {
+  float under = aw_underDeck(P.y);
+  return mix(vec3(0.46, 0.50, 0.86), vec3(0.40, 0.44, 0.66), under);
+}
+
 vec3 aw_shade(AwSurface s, vec3 P, vec3 V, float sunVis) {
   vec3 N = normalize(s.normal);
   vec3 L = uSunDir;
-  vec3 H = normalize(L + V);
   float NoLraw = dot(N, L);
-  float NoL = saturate(NoLraw);
   float NoV = max(dot(N, V), 1e-3);
+  vec3 H = normalize(L + V);
   float NoH = saturate(dot(N, H));
-  float VoH = saturate(dot(V, H));
 
-  vec3 f0 = mix(vec3(0.04), s.albedo, s.metallic);
-  vec3 diffAlbedo = s.albedo * (1.0 - s.metallic);
+  // --- Toon ramp: a flat lit tone, a narrow warm terminator, a flat shadow tone.
+  float w = s.wrap * 0.6;
+  float d = (NoLraw + w) / (1.0 + w);
+  float ramp = smoothstep(0.0, 0.16, d);
+  float terminator = smoothstep(0.0, 0.1, d) * (1.0 - smoothstep(0.1, 0.32, d));
+  float castSh = smoothstep(0.35, 0.65, sunVis);
+  float lit = ramp * castSh;
 
-  // Wrapped diffuse: energy-normalised, with the wrap zone tinted by the SSS colour.
-  float w = s.wrap;
-  float wrapped = saturate((NoLraw + w) / ((1.0 + w) * (1.0 + w)));
-  vec3 diffuseTerm = mix(s.sssColor * wrapped, vec3(NoL), NoL) ;
-  // Soft cel band: a painterly light/shadow split with a narrow, warm-tinted terminator.
-  float band = smoothstep(-0.04, 0.12, NoLraw);
-  diffuseTerm = mix(diffuseTerm, s.sssColor * band * 0.62 + diffuseTerm * 0.38, 0.55);
-  vec3 direct = diffAlbedo * diffuseTerm / AW_PI;
+  vec3 albedo = s.albedo * (1.0 - s.metallic * 0.5);
+  vec3 amb = aw_ambient(N, P);
+  // Flatten the ambient towards its average so shadowed forms read as painted shapes.
+  vec3 flatAmb = mix(amb, vec3(dot(amb, vec3(0.333))) * vec3(0.95, 0.97, 1.1), 0.35);
+  vec3 shadowCol = albedo * (flatAmb * 1.15 * s.ao) * aw_shadowTint(P) * 1.55;
+  vec3 sunLit = albedo * uSunColor * 0.62 * mix(0.85, 1.0, s.ao);
+  vec3 col = mix(shadowCol, sunLit + shadowCol * 0.35, lit);
+  col += albedo * uSunColor * s.sssColor * terminator * castSh * 0.12;
 
-  // Specular
-  float a = max(s.roughness * s.roughness, 0.002);
-  vec3 F = aw_F_Schlick(f0, VoH);
-  vec3 spec = aw_D_GGX(NoH, a) * aw_V_Smith(NoV, NoL, a) * F * NoL * s.specular;
-
-  vec3 sun = uSunColor * sunVis;
-  vec3 col = (direct + spec) * sun * AW_PI;
-
-  // Thin-surface transmission (light passing through leaves / fabric towards the viewer).
+  // --- Backlit glow through thin surfaces (grass, leaves, cloth, hair).
   if (s.translucency > 0.0) {
-    float back = pow(saturate(dot(V, -L)), 3.0);
-    float thin = saturate(-NoLraw * 0.6 + 0.4);
-    col += s.albedo * s.sssColor * uSunColor * sunVis * s.translucency * (back * 1.6 + 0.12) * thin;
+    float back = pow(saturate(dot(V, -L)), 2.5);
+    col += albedo * s.sssColor * uSunColor * s.translucency * (back * 0.9 + 0.06) * (1.0 - ramp * 0.6) * saturate(sunVis + 0.2);
   }
 
-  // Ambient: altitude-aware hemisphere + a cheap specular sky reflection.
-  vec3 amb = aw_ambient(N, P);
-  col += diffAlbedo * amb * s.ao;
-  vec3 R = reflect(-V, N);
-  vec3 envF = f0 + (max(vec3(1.0 - s.roughness), f0) - f0) * pow(1.0 - NoV, 5.0);
-  vec3 env = aw_sky(normalize(vec3(R.x, abs(R.y) * 0.6 + 0.05, R.z))) * mix(1.0, 0.45, aw_underDeck(P.y));
-  col += env * envF * s.ao * s.specular * (1.0 - s.roughness * 0.7);
+  // --- Hard stylised highlight.
+  if (s.specular > 0.0) {
+    float gloss = mix(900.0, 24.0, s.roughness);
+    float spec = smoothstep(0.55, 0.62, pow(NoH, gloss)) * (1.0 - s.roughness * 0.75);
+    col += uSunColor * spec * lit * s.specular * mix(0.25, 0.8, s.metallic);
+  }
 
-  // Rim: silhouettes catch the low sun when back- or side-lit.
+  // --- Rim band: a crisp warm outline on the silhouette, strongest when back/side lit.
   if (s.rim > 0.0) {
-    float fres = pow(1.0 - NoV, 3.0);
-    float backlit = saturate(dot(-V, L) * 0.5 + 0.55);
-    float facing = saturate(dot(N, normalize(L - V * dot(L, V))) * 0.5 + 0.5);
-    col += uSunColor * sunVis * fres * backlit * facing * s.rim * 0.35;
-    col += amb * fres * s.rim * 0.25;
+    float fres = smoothstep(0.62, 0.8, 1.0 - NoV);
+    float backlit = saturate(dot(-V, L) * 0.6 + 0.55);
+    col += uSunColor * vec3(1.0, 0.86, 0.7) * fres * backlit * s.rim * 0.16 * saturate(sunVis + 0.25);
+    col += flatAmb * fres * s.rim * 0.18;
   }
 
   col += s.emissive;
