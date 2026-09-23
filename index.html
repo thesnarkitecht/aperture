@@ -3,47 +3,29 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Aperture — Anatomy of a Rangefinder</title>
-    <meta name="description" content="A scroll-driven, real-time 3D exploded breakdown of a Leica M6 rangefinder, built with three.js." />
-    <meta name="theme-color" content="#070708" />
+    <title>Aperture</title>
+    <meta name="description" content="A scroll-driven, real-time 3D exploded view of a Leica M6 rangefinder, built with three.js." />
+    <meta name="theme-color" content="#060607" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- Typefaces are only used for the engravings on the model itself. -->
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23d0101e'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E" />
   </head>
   <body>
-    <canvas id="gl" aria-label="Interactive 3D model of a rangefinder camera"></canvas>
+    <canvas id="gl" aria-label="Interactive 3D model of a Leica M6 rangefinder. Scroll to take it apart; drag to turn it."></canvas>
 
-    <div id="loader" role="status">
-      <div class="loader-inner">
-        <div class="mark"><span class="dot"></span>Aperture</div>
-        <div class="bar"><i></i></div>
-        <p class="status">Starting</p>
-      </div>
+    <div id="loader" role="progressbar" aria-label="Loading">
+      <div class="bar"><i></i></div>
     </div>
 
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">
-        <span class="dot"></span>Aperture <span class="sub">Anatomy Nº 01</span>
-      </a>
-      <div class="finish" role="group" aria-label="Finish">
-        <button data-finish="chrome" class="on">Chrome</button>
-        <button data-finish="black">Black</button>
-      </div>
-    </header>
+    <div class="swatches" role="group" aria-label="Finish">
+      <button data-finish="chrome" class="on" aria-label="Silver chrome finish"><i class="sw sw--chrome"></i></button>
+      <button data-finish="black" aria-label="Black paint finish"><i class="sw sw--black"></i></button>
+    </div>
 
-    <nav id="rail" aria-label="Chapters"></nav>
     <div id="progress" aria-hidden="true"><i></i></div>
-
-    <div id="labels" aria-hidden="true"></div>
-    <div id="cards"></div>
-
-    <footer class="hud" aria-hidden="true">
-      <div><span class="k">Chapter</span><b id="hud-chapter">00</b></div>
-      <div><span class="k">Exploded</span><b id="hud-explode">0%</b></div>
-      <div><span class="k">Parts</span><b id="hud-parts">—</b></div>
-    </footer>
-    <div class="scroll-hint" aria-hidden="true"><span>Scroll</span><i></i></div>
+    <div class="scroll-cue" aria-hidden="true"><i></i></div>
 
     <div id="scroll"></div>
     <script type="module" src="/src/main.js"></script>

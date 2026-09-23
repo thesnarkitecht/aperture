@@ -5,6 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { glowSprite } from './textures.js';
 
 // A small virtual photo studio: softboxes and strip lights rendered into a
@@ -24,34 +25,58 @@ function studioEnvironment(renderer) {
     }),
   );
   env.add(room);
+  // Softboxes with feathered edges and a gentle internal gradient, like real diffusion fabric.
   const panel = (w, h, intensity, pos, look, tint = [1, 1, 1]) => {
     const m = new THREE.Mesh(
       new THREE.PlaneGeometry(w, h),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(...tint).multiplyScalar(intensity), side: THREE.DoubleSide }),
+      new THREE.ShaderMaterial({
+        side: THREE.DoubleSide,
+        uniforms: { uColor: { value: new THREE.Color(...tint).multiplyScalar(intensity) }, uAspect: { value: w / h } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: `uniform vec3 uColor; uniform float uAspect; varying vec2 vUv;
+          void main(){
+            vec2 d = abs(vUv - 0.5) * 2.0;
+            float fx = 1.0 - smoothstep(1.0 - 0.18 / max(uAspect, 0.2), 1.0, d.x);
+            float fy = 1.0 - smoothstep(1.0 - 0.18 * min(uAspect, 5.0), 1.0, d.y);
+            float hot = 0.8 + 0.2 * (1.0 - dot(d, d) * 0.5);
+            gl_FragColor = vec4(uColor * fx * fy * hot, 1.0);
+          }`,
+      }),
     );
     m.position.set(...pos);
     m.lookAt(...look);
     env.add(m);
   };
-  panel(10, 6, 1.3, [0, 12, 2], [0, 0, 0]);                         // overhead softbox
-  panel(2.2, 12, 3.2, [-11, 3, 4], [0, 0, 0], [1, 0.97, 0.92]);      // key strip, warm
-  panel(2.2, 12, 1.8, [11, 2, -3], [0, 0, 0], [0.9, 0.95, 1.05]);    // fill strip, cool
-  panel(14, 1.6, 2.0, [0, 5, -12], [0, 0, 0]);                        // rim bar behind
-  panel(8, 1.0, 0.5, [0, -3, 12], [0, 0, 0], [1, 0.9, 0.8]);           // low front kicker
-  panel(3, 3, 2.6, [7, 9, 8], [0, 0, 0]);                              // small hot spot
+  panel(12, 7, 1.6, [0, 12, 2], [0, 0, 0]);                         // overhead softbox
+  panel(2.6, 13, 5.2, [-11, 3, 4], [0, 0, 0], [1, 0.96, 0.9]);       // key strip, warm
+  panel(2.6, 13, 2.0, [11, 2, -3], [0, 0, 0], [0.88, 0.94, 1.06]);   // fill strip, cool
+  panel(16, 1.8, 3.4, [0, 5, -12], [0, 0, 0]);                        // rim bar behind
+  panel(10, 1.2, 0.6, [0, -3, 12], [0, 0, 0], [1, 0.9, 0.8]);          // low front kicker
+  panel(3.5, 3.5, 4.0, [7, 9, 8], [0, 0, 0]);                          // small hot spot
+  panel(20, 6, 0.12, [0, -9, 0], [0, 0, 0], [0.9, 0.9, 1]);            // floor bounce
   const pmrem = new THREE.PMREMGenerator(renderer);
   const rt = pmrem.fromScene(env, 0.035);
   pmrem.dispose();
   return rt.texture;
 }
 
+// Caps HDR values before bloom so pin-point speculars on polished chrome
+// glow softly instead of blooming into blobs. Values above ~4 tone-map to white anyway.
+const ClampShader = {
+  uniforms: { tDiffuse: { value: null }, uMax: { value: 4.0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uMax; varying vec2 vUv;
+    void main(){ vec4 c = texture2D(tDiffuse, vUv); float m = max(max(c.r, c.g), c.b);
+      gl_FragColor = vec4(c.rgb * (m > uMax ? uMax / m : 1.0), c.a); }`,
+};
+
 const VignetteGrainShader = {
   uniforms: {
     tDiffuse: { value: null },
     uTime: { value: 0 },
     uVignette: { value: 0.9 },
-    uGrain: { value: 0.045 },
-    uAberration: { value: 0.0005 },
+    uGrain: { value: 0.032 },
+    uAberration: { value: 0.00018 },
   },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
   fragmentShader: /* glsl */`
@@ -82,7 +107,7 @@ export function createStage(canvas) {
   renderer.setPixelRatio(dpr);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.95;
+  renderer.toneMappingExposure = 1.2;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -121,7 +146,7 @@ export function createStage(canvas) {
   scene.add(backdrop);
 
   // Direct lights: a shadow-casting key and a cool rim.
-  const key = new THREE.DirectionalLight(0xfff4e8, 0.6);
+  const key = new THREE.DirectionalLight(0xfff4e8, 1.0);
   key.position.set(-2.5, 5, 3.5);
   key.castShadow = true;
   key.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
@@ -189,12 +214,32 @@ export function createStage(canvas) {
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: isMobile ? 2 : 4 });
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.12, 0.35, 2.6);
+  // Ground-truth ambient occlusion: contact darkening in every seam and knurl.
+  const aoExclude = [];
+  let gtao = null;
+  if (!isMobile) {
+    gtao = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight);
+    gtao.output = GTAOPass.OUTPUT.Default;
+    gtao.blendIntensity = 0.85;
+    gtao.updateGtaoMaterial({ radius: 0.12, distanceExponent: 1.6, thickness: 1.2, scale: 1.1, samples: 16, distanceFallOff: 1 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+    const baseRender = gtao.render.bind(gtao);
+    gtao.render = (...args) => {
+      const hidden = aoExclude.filter((o) => o.visible);
+      hidden.forEach((o) => { o.visible = false; });
+      baseRender(...args);
+      hidden.forEach((o) => { o.visible = true; });
+    };
+    composer.addPass(gtao);
+  }
+  composer.addPass(new ShaderPass(ClampShader));
+  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.45, 1.5);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   const finish = new ShaderPass(VignetteGrainShader);
   composer.addPass(finish);
 
+  aoExclude.push(backdrop, floor);
   const resize = () => {
     const w = window.innerWidth, h = window.innerHeight;
     renderer.setSize(w, h);
@@ -208,7 +253,7 @@ export function createStage(canvas) {
   window.addEventListener('resize', resize);
 
   return {
-    renderer, scene, camera, composer, bloom, finish, key, floor, dust, dustMat, backdrop, isMobile,
+    renderer, scene, camera, composer, bloom, finish, key, floor, dust, dustMat, backdrop, isMobile, gtao, aoExclude,
     render(time) {
       finish.uniforms.uTime.value = time;
       dustMat.uniforms.uTime.value = time;

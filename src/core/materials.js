@@ -4,8 +4,11 @@ import * as THREE from 'three';
 import * as T from './textures.js';
 
 export function createMaterials() {
-  const leatherN = T.leatherNormal();
-  leatherN.repeat.set(1 / 16, 1 / 16);
+  const leather = T.leatherMaps();
+  leather.normal.repeat.set(1 / 30, 1 / 30);
+  leather.rough.repeat.set(1 / 30, 1 / 30);
+  const brushed = T.brushedRoughness();
+  brushed.repeat.set(1 / 48, 1 / 48);
   const clothN = T.clothNormal();
   clothN.repeat.set(1 / 6, 1 / 6);
   const ribN = T.ribbedNormal();
@@ -15,7 +18,7 @@ export function createMaterials() {
 
   // Satin chrome: brushed along the tangent, a touch of anisotropy.
   M.chrome = new THREE.MeshPhysicalMaterial({
-    name: 'chrome', color: 0xd6d6d2, metalness: 1, roughness: 0.2,
+    name: 'chrome', color: 0xdcdcd8, metalness: 1, roughness: 0.17, roughnessMap: brushed,
     anisotropy: 0.35, envMapIntensity: 1.15,
   });
   M.chromePolished = new THREE.MeshPhysicalMaterial({
@@ -38,9 +41,10 @@ export function createMaterials() {
     name: 'anodizedMatte', color: 0x101011, metalness: 0.4, roughness: 0.55,
   });
   M.leather = new THREE.MeshPhysicalMaterial({
-    name: 'leather', color: 0x0c0c0c, metalness: 0, roughness: 0.6,
-    normalMap: leatherN, normalScale: new THREE.Vector2(0.9, 0.9),
-    sheen: 0.15, sheenRoughness: 0.6, sheenColor: new THREE.Color(0x2a2a2a),
+    name: 'leather', color: 0x111111, metalness: 0, roughness: 0.72,
+    normalMap: leather.normal, normalScale: new THREE.Vector2(1.1, 1.1), roughnessMap: leather.rough,
+    sheen: 0.25, sheenRoughness: 0.5, sheenColor: new THREE.Color(0x303030),
+    clearcoat: 0.08, clearcoatRoughness: 0.5,
   });
   M.chassis = new THREE.MeshPhysicalMaterial({
     name: 'chassis', color: 0x2c2d30, metalness: 0.7, roughness: 0.5,
@@ -107,21 +111,17 @@ export function createMaterials() {
     name: 'canister', map: T.canisterLabel(), metalness: 0.35, roughness: 0.35, clearcoat: 0.6,
   });
   M.white = new THREE.MeshPhysicalMaterial({ name: 'white', color: 0xf2f0ea, roughness: 0.4 });
-  M.lightRay = new THREE.MeshBasicMaterial({
-    name: 'lightRay', color: new THREE.Color(1.0, 0.82, 0.55).multiplyScalar(3.2),
-    transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
-  });
   M.frameline = new THREE.MeshBasicMaterial({
-    name: 'frameline', color: new THREE.Color(1, 0.97, 0.9).multiplyScalar(2.2),
+    name: 'frameline', color: new THREE.Color(1, 0.97, 0.9).multiplyScalar(4),
   });
-  M.led = new THREE.MeshBasicMaterial({ name: 'led', color: new THREE.Color(3.5, 0.2, 0.15) });
+  M.led = new THREE.MeshBasicMaterial({ name: 'led', color: new THREE.Color(6, 0.3, 0.2) });
 
   // Finishes: the swappable "body metal" is the top plate, base plate and dials.
   M.body = M.chrome.clone();
   M.body.name = 'bodyMetal';
   const finishes = {
     // Non-zero clearcoat/anisotropy on both keeps one shader program, so switching never recompiles.
-    chrome: { color: 0xd6d6d2, metalness: 1, roughness: 0.2, clearcoat: 0.02, anisotropy: 0.35 },
+    chrome: { color: 0xdcdcd8, metalness: 1, roughness: 0.17, clearcoat: 0.02, anisotropy: 0.35 },
     black: { color: 0x080808, metalness: 0.0, roughness: 0.3, clearcoat: 1, anisotropy: 0.02 },
   };
   M.setFinish = (name) => {

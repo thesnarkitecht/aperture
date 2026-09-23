@@ -203,6 +203,30 @@ export function buildBody(M, rig) {
   rig.add(selector, 'skin', [0, 0, 20]);
   rig.anchor(selector, 'frameSelector', [4, -6, 2]);
 
+  // Film-rewind release lever ("R") on the front, left of the mount.
+  const rLever = new THREE.Group();
+  rLever.name = 'rewindLever';
+  rLever.add(mesh(G.latheZ([[0, 0], [2.4, 0], [2.4, 0.9], [1.9, 1.4], [0, 1.4]], 32), M.body));
+  const rArm = mesh(G.extrudeForward(G.roundedRectShape(2.2, 9, 1.1, 0, 3.8), 1.0, 0.3), M.body);
+  rArm.position.z = 0.9;
+  rArm.rotation.z = -0.35;
+  rLever.add(rArm);
+  rLever.position.set(-27, 7, D.frontZ);
+  body.add(rLever);
+  rig.add(rLever, 'skin', [0, 0, 20]);
+
+  // Die-cast bosses and screws on the inside of the front casting.
+  for (const [x, y] of [[-46, 10], [46, 10], [-46, -30], [46, -30], [-27, -32], [27, -32]]) {
+    const boss = mesh(G.latheZ([[0, 0], [2.6, 0], [2.6, 2.2], [2.2, 2.6], [0, 2.6]], 24), M.chassis);
+    boss.rotation.y = Math.PI;
+    boss.position.set(x, y, D.chassisInner);
+    chassis.add(boss);
+    const sc = G.screw(M, 1.1);
+    sc.rotation.x = -Math.PI / 2;
+    sc.position.set(x, y, D.chassisInner - 2.6);
+    chassis.add(sc);
+  }
+
   // Battery compartment: two SR44 cells behind a coin-slot cap.
   const battery = new THREE.Group();
   battery.name = 'battery';
@@ -241,6 +265,25 @@ export function buildBody(M, rig) {
   backSkin.position.z = -D.frontZ;
   rear.add(backSkin);
   rig.add(backSkin, 'skin', [0, 0, -18]);
+  // Hinged back-door outline and hinge pin in the vulcanite.
+  const door = new THREE.Group();
+  const seam = (w, h, x, y) => {
+    const m = mesh(new THREE.BoxGeometry(w, h, 0.25), M.matteBlack, { cast: false });
+    m.position.set(x, y, -D.frontZ - 0.05);
+    door.add(m);
+  };
+  seam(78, 0.5, -4, 11); seam(78, 0.5, -4, -30); seam(0.5, 41, -43, -9.5); seam(0.5, 41, 35, -9.5);
+  const hinge = mesh(G.cylZ(0.9, 0, 1, { segments: 16 }), M.chromePolished);
+  hinge.geometry = new THREE.CylinderGeometry(0.9, 0.9, 40, 16);
+  hinge.position.set(35.6, -9.5, -D.frontZ - 0.4);
+  door.add(hinge);
+  const latch = mesh(G.extrudeForward(G.roundedRectShape(6, 3, 1.4), 1.2, 0.35), M.body);
+  latch.rotation.y = Math.PI;
+  latch.position.set(-38, -9.5, -D.frontZ + 0.2);
+  door.add(latch);
+  rear.add(door);
+  rig.add(door, 'skin', [0, 0, -18]);
+
   // Pressure plate on springs.
   const pp = new THREE.Group();
   pp.name = 'pressurePlate';
@@ -276,7 +319,7 @@ export function buildBody(M, rig) {
   rig.add(iso, 'rear', [0, 0, -14]);
   rig.anchor(iso, 'isoDial', [0, 7, 1]);
   body.add(rear);
-  rig.add(rear, 'rear', [0, 0, -62]);
+  rig.add(rear, 'rear', [0, 0, -92]);
 
   // ---- Base plate ----------------------------------------------------------
   const base = new THREE.Group();

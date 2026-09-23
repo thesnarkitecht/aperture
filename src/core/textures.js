@@ -50,11 +50,12 @@ function tex(c, { srgb = false, repeat = 1, aniso = 8 } = {}) {
 }
 
 // Vulcanite: a tight, irregular pebble grain made from tiled Worley noise.
-export function leatherNormal(size = 512, cells = 30) {
+// Returns a normal map plus a roughness map (pebble crowns are worn smoother).
+export function leatherMaps(size = 1024, cells = 44) {
   const pts = [];
   for (let j = 0; j < cells; j++) {
     for (let i = 0; i < cells; i++) {
-      pts.push([(i + 0.15 + hash(i, j, 1) * 0.7) / cells, (j + 0.15 + hash(i, j, 2) * 0.7) / cells, 0.6 + hash(i, j, 3) * 0.4]);
+      pts.push([(i + 0.1 + hash(i, j, 1) * 0.8) / cells, (j + 0.1 + hash(i, j, 2) * 0.8) / cells, 0.55 + hash(i, j, 3) * 0.45]);
     }
   }
   const h = new Float32Array(size * size);
@@ -67,18 +68,50 @@ export function leatherNormal(size = 512, cells = 30) {
         for (let oi = -1; oi <= 1; oi++) {
           const ii = (ci + oi + cells) % cells, jj = (cj + oj + cells) % cells;
           const p = pts[jj * cells + ii];
-          let dx = p[0] + (ci + oi - ii) / cells - u;
-          let dy = p[1] + (cj + oj - jj) / cells - v;
+          const dx = p[0] + (ci + oi - ii) / cells - u;
+          const dy = p[1] + (cj + oj - jj) / cells - v;
           const d = Math.hypot(dx, dy) * cells;
           if (d < f1) { f2 = f1; f1 = d; amp = p[2]; } else if (d < f2) f2 = d;
         }
       }
-      const pebble = Math.min(1, (f2 - f1) * 1.6);
-      const n = hash(x, y, 7) * 0.08;
-      h[y * size + x] = Math.sqrt(pebble) * amp + n;
+      const edge = Math.min(1, (f2 - f1) * 2.2);
+      const crown = Math.max(0, 1 - f1 * 1.25);
+      h[y * size + x] = Math.sqrt(edge) * amp * 0.8 + crown * 0.25 + hash(x, y, 7) * 0.06;
     }
   }
-  return tex(heightToNormal(h, size, 2.2));
+  const normal = tex(heightToNormal(h, size, 3.2));
+  const rc = canvas(size);
+  const ctx = rc.getContext('2d');
+  const img = ctx.createImageData(size, size);
+  for (let i = 0; i < size * size; i++) {
+    const r = Math.max(0, Math.min(255, (1.05 - h[i] * 0.45) * 235));
+    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = r;
+    img.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return { normal, rough: tex(rc) };
+}
+
+// Brushed / satin metal: long horizontal streaks for a roughness map.
+export function brushedRoughness(size = 1024) {
+  const c = canvas(size);
+  const ctx = c.getContext('2d');
+  const img = ctx.createImageData(size, size);
+  const rows = new Float32Array(size);
+  for (let y = 0; y < size; y++) rows[y] = hash(y, 3, 21);
+  for (let y = 0; y < size; y++) {
+    // Smooth the per-row noise a little so streaks have width variety.
+    const r = (rows[y] * 0.5 + rows[(y + 1) % size] * 0.3 + rows[(y + size - 1) % size] * 0.2);
+    for (let x = 0; x < size; x++) {
+      const streak = 0.5 + 0.5 * Math.sin((x / size) * Math.PI * 2 * (1 + (y % 7)) + rows[y] * 40);
+      const v = 0.72 + r * 0.22 + streak * 0.04 + hash(x, y, 22) * 0.05;
+      const i = (y * size + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = Math.min(255, v * 255);
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return tex(c);
 }
 
 // Fine woven cloth for the rubberised shutter curtain.

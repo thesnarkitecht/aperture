@@ -23,7 +23,7 @@ export function rayMaterial(color = new THREE.Color(1.0, 0.8, 0.5)) {
     uniforms: {
       uTime: { value: 0 },
       uOpacity: { value: 0 },
-      uColor: { value: color.clone().multiplyScalar(3.0) },
+      uColor: { value: color.clone().multiplyScalar(3.5) },
     },
     vertexShader: /* glsl */`
       varying vec2 vUv;
@@ -264,6 +264,8 @@ export function buildLens(M, rig) {
 
   // ---- Explode tracks (lens-local) ---------------------------------------------
   rig.add(lens, 'lens', [0, 0, 100]);
+  // Parked below frame while the body chapters play out.
+  rig.add(lens, 'lensPark', [0, -210, 120], [0.3, 0, 0]);
   rig.floaty(lens, 1.2, 0.5);
   rig.add(front, 'lensInner', [0, 0, 64]);
   rig.add(baffle, 'lensInner', [0, 0, 50]);
