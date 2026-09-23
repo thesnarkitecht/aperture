@@ -18,7 +18,7 @@ export function createMaterials() {
 
   // Satin chrome: brushed along the tangent, a touch of anisotropy.
   M.chrome = new THREE.MeshPhysicalMaterial({
-    name: 'chrome', color: 0xdcdcd8, metalness: 1, roughness: 0.17, roughnessMap: brushed,
+    name: 'chrome', color: 0xdcdcd8, metalness: 1, roughness: 0.25, roughnessMap: brushed,
     anisotropy: 0.35, envMapIntensity: 1.15,
   });
   M.chromePolished = new THREE.MeshPhysicalMaterial({
@@ -157,7 +157,7 @@ export function createMaterials() {
   M.body.name = 'bodyMetal';
   const finishes = {
     // Non-zero clearcoat/anisotropy on both keeps one shader program, so switching never recompiles.
-    chrome: { color: 0xdcdcd8, metalness: 1, roughness: 0.17, clearcoat: 0.02, anisotropy: 0.35 },
+    chrome: { color: 0xdcdcd8, metalness: 1, roughness: 0.25, clearcoat: 0.02, anisotropy: 0.35 },
     // Black M11: matte-coated aluminium top cover.
     black: { color: 0x0a0a0a, metalness: 0.15, roughness: 0.48, clearcoat: 0.25, anisotropy: 0.02 },
   };

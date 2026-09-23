@@ -240,7 +240,7 @@ export function createStage(canvas) {
     composer.addPass(gtao);
   }
   composer.addPass(new ShaderPass(ClampShader));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.14, 0.4, 1.8);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.12, 0.4, 2.4);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   const finish = new ShaderPass(VignetteGrainShader);
