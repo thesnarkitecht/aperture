@@ -156,7 +156,7 @@ export class Island {
           y = rimY - 0.4 - depth;
           // Erosion: vertical flutes + strata ledges + blobs.
           const n3 = noise.fbm3(cx * 3.0, y * 0.018, cz * 3.0, 4);
-          const flutes = Math.abs(noise.noise2(th * 18, y * 0.01)) * 0.12;
+          const flutes = Math.abs(noise.noise2(th * 12, y * 0.006)) * 0.06;
           const strata = Math.sin(y * 0.55 + noise.noise2(th * 3, y * 0.02) * 2.5) * 0.02;
           const rr = R * prof * (1 + 0.22 * n3 - flutes + strata) + (v < band ? 0.8 : 0);
           // Secondary hanging lobes off-centre.
@@ -235,8 +235,8 @@ export class Island {
           vec3 dirt = mix(vec3(0.24, 0.17, 0.10), vec3(0.34, 0.26, 0.17), n2);
           vec3 ground = mix(grass, dirt, smoothstep(0.35, 0.8, vExtra.x + (n2 - 0.5) * 0.4));
           float strata = sin(P.y * 0.9 + n3 * 6.0) * 0.5 + 0.5;
-          vec3 rock = mix(vec3(0.20, 0.16, 0.13), vec3(0.36, 0.30, 0.24), strata * 0.6 + n3 * 0.4);
-          rock = mix(rock, vec3(0.13, 0.11, 0.10), smoothstep(1600.0, 1400.0, P.y) * 0.6);
+          vec3 rock = mix(vec3(0.13, 0.115, 0.11), vec3(0.25, 0.22, 0.19), strata * 0.6 + n3 * 0.4);
+          rock = mix(rock, vec3(0.08, 0.075, 0.08), smoothstep(1600.0, 1420.0, P.y) * 0.7);
           // Moss on up-facing ledges of the underside.
           float moss = smoothstep(0.3, 0.7, N.y) * vExtra.y * smoothstep(0.4, 0.7, n2);
           rock = mix(rock, vec3(0.10, 0.15, 0.05), moss);

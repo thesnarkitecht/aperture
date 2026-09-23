@@ -80,8 +80,11 @@ export class Character {
   /** Swap the procedural body for the skinned hero model (the procedural rig keeps driving the glider). */
   useModel(m: ModelHero): void {
     this.model = m;
-    this.mesh.visible = false;
+    // Hide only the procedural body's surface: its skeleton still carries the glider wing.
+    (this.mesh.material as THREE.Material).visible = false;
+    this.mesh.userData.castShadow = false;
     this.scarf.mesh.visible = false;
+    this.scarf.mesh.userData.castShadow = false;
     this.root.add(m.root);
   }
 
@@ -124,7 +127,8 @@ export class Character {
           float z = lead - uv.y * chord;
           float y = 0.12 + pow(a, 1.5) * 0.28 * uDeploy + sin(uv.y * 3.14159) * 0.08 * (1.0 - a * 0.5) * uDeploy;
           y += sin(uTime * 9.0 + u * 4.0 + uv.y * 3.0) * 0.025 * uv.y * uDeploy;
-          return vec3(x, y + 0.02, z - 0.12);
+          // Wing lies in the plane of the back: span = chest X, chord runs down towards the hips.
+          return vec3(x, 0.32 + z, -0.16 - y);
         }
         void main() {
           vUv = uv;

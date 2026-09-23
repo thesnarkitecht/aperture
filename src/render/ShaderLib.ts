@@ -28,7 +28,7 @@ export const G = {
   uFogExtinction: { value: new THREE.Vector3(0.8, 0.95, 1.2) },
   uCloudLayer: { value: new THREE.Vector2(CLOUD_BASE, CLOUD_TOP) },
   uAmbSkyAbove: { value: new THREE.Vector3(0.32, 0.36, 0.55) },
-  uAmbGroundAbove: { value: new THREE.Vector3(0.55, 0.42, 0.36) },
+  uAmbGroundAbove: { value: new THREE.Vector3(0.36, 0.29, 0.27) },
   uAmbSkyBelow: { value: new THREE.Vector3(0.2, 0.22, 0.32) },
   uAmbGroundBelow: { value: new THREE.Vector3(0.08, 0.08, 0.07) },
   // shadows

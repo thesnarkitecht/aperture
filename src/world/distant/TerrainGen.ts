@@ -207,6 +207,11 @@ export function terrainHeightFn(x: number, z: number): number {
   const rz = Math.abs(z - TERRAIN_CENTER.y) / (TERRAIN_SIZE * 0.5);
   const edge = sstep(0.8, 0.99, Math.max(rx, rz));
   h += (90 + 60 * (0.5 + 0.5 * nMisc.noise2(x / 7000, z / 7000)) - h) * edge;
+  // Keep the dive and glide corridor open: a wide valley under the island towards the sun,
+  // with the flanking ranges pushed back so the reveal looks out over the whole world.
+  const corridor = sstep(-3000, -1200, along) * (1 - sstep(9000, 12000, along)) * (1 - sstep(1600, 4200, Math.abs(side)));
+  const floor = 160 + 260 * sstep(1600, 4200, Math.abs(side));
+  if (h > floor) h -= (h - floor) * corridor;
   return h;
 }
 

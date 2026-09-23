@@ -314,8 +314,11 @@ class App {
       const et = ev.get('exit');
       if (et !== undefined && t - et > 1.6 && !ev.has('deploy')) inp.jump = true;
     } else if (h.state === 'glide') {
+      // Bank gently onto the valley axis towards the sunset, then hold it with small weaves.
       const dt = t - (ev.get('deploy') ?? t);
-      inp.move.set(Math.sin(dt * 0.16) * 0.35, dt > 24 ? -0.2 : 0);
+      const want = Math.atan2(SUN_DIR.x, SUN_DIR.z) + Math.sin(dt * 0.12) * 0.12;
+      const err = Math.atan2(Math.sin(want - h.yaw), Math.cos(want - h.yaw));
+      inp.move.set(clamp(err * 2.2, -0.6, 0.6), dt > 24 ? -0.2 : 0);
     }
     return inp;
   }
