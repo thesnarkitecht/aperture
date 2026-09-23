@@ -81,7 +81,20 @@ export function leatherMaps(size = 1024, cells = 24) {
       h[y * size + x] = Math.pow(edge, 0.45) * amp * 0.85 + crown * 0.22 + fine;
     }
   }
-  const normal = tex(heightToNormal(h, size, 4.2));
+  // Two wrap-around box blurs round off the Worley facets into organic pebbles.
+  for (let pass = 0; pass < 2; pass++) {
+    const src = h.slice();
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        let acc = 0;
+        for (let oy = -1; oy <= 1; oy++) {
+          for (let ox = -1; ox <= 1; ox++) acc += src[((y + oy + size) % size) * size + ((x + ox + size) % size)];
+        }
+        h[y * size + x] = acc / 9;
+      }
+    }
+  }
+  const normal = tex(heightToNormal(h, size, 6.0));
   const rc = canvas(size);
   const ctx = rc.getContext('2d');
   const img = ctx.createImageData(size, size);

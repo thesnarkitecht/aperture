@@ -77,6 +77,11 @@ export function createMaterials() {
     iridescence: 0.85, iridescenceIOR: 1.35, iridescenceThicknessRange: [180, 420],
     specularIntensity: 1, envMapIntensity: 1.4, transparent: false,
   });
+  // Viewfinder window: coated, see-through glass with a blue-violet cast.
+  M.vfGlass = new THREE.MeshPhysicalMaterial({
+    name: 'vfGlass', color: 0xaebfd0, metalness: 0, roughness: 0.02, transmission: 0.9, thickness: 1.2, ior: 1.52,
+    iridescence: 0.7, iridescenceIOR: 1.4, iridescenceThicknessRange: [260, 420], specularIntensity: 1, envMapIntensity: 1.3,
+  });
   M.glassDark = new THREE.MeshPhysicalMaterial({
     name: 'glassDark', color: 0x030405, metalness: 0, roughness: 0.02,
     clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.6,

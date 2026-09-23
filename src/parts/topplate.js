@@ -31,20 +31,21 @@ function decalPlane(w, h, texture, { metal = false, rough = 0.5 } = {}) {
   }));
 }
 
-// Window: bezel frame, glass, and a blackened well behind it for depth.
-function windowUnit(M, w, h, glassMat, { bezel = 1.1, depth = 1.0, r = 1.4, frameMat } = {}) {
+// Window: bezel frame proud of the plate, a black backing on the plate face,
+// and the glass just behind the bezel lip. `face` = plate face offset from origin.
+function windowUnit(M, w, h, glassMat, { bezel = 1.1, depth = 1.0, r = 1.4, frameMat, face = 0.5 } = {}) {
   const g = new THREE.Group();
   const outer = G.roundedRectShape(w + bezel * 2, h + bezel * 2, r + bezel);
   const hole = new THREE.Path();
   G.roundedRectPath(hole, w, h, r, 0, 0, true);
   outer.holes.push(hole);
   g.add(mesh(G.extrudeForward(outer, depth, Math.min(0.4, depth / 3), 32, 3), frameMat || M.chromePolished));
-  const glass = mesh(G.extrudeForward(G.roundedRectShape(w, h, r), 0.5), glassMat);
-  glass.position.z = depth - 0.55; // nearly flush with the bezel, proud of the plate face
+  const backing = mesh(new THREE.ShapeGeometry(G.roundedRectShape(w + 0.1, h + 0.1, r), 24), M.matteBlack, { cast: false });
+  backing.position.z = face + 0.02;
+  g.add(backing);
+  const glass = mesh(G.extrudeForward(G.roundedRectShape(w, h, r), 0.3), glassMat, { cast: false });
+  glass.position.z = Math.max(face + 0.12, depth - 0.36);
   g.add(glass);
-  const well = mesh(G.extrudeForward(G.roundedRectShape(w - 0.2, h - 0.2, r), 3), M.matteBlack, { cast: false });
-  well.position.z = depth - 4.2;
-  g.add(well);
   return g;
 }
 
@@ -115,16 +116,20 @@ export function buildTopPlate(M, rig) {
   top.add(block);
 
   // ---- Front face ------------------------------------------------------------------------
-  const vf = windowUnit(M, L.vf.w, L.vf.h, M.glassDark, { bezel: L.vf.bezel, depth: 1.0, r: 1.6 });
+  const vf = windowUnit(M, L.vf.w, L.vf.h, M.vfGlass, { bezel: L.vf.bezel, depth: 1.0, r: 1.6 });
   vf.position.set(L.vf.x, L.vf.y, fz - 0.5);
   top.add(vf);
+  // Visible through the window: the finder objective and the pale frame-line mask.
+  const obj = mesh(new THREE.ShapeGeometry(G.roundedRectShape(L.vf.w - 3, L.vf.h - 3, 1.4), 24), M.glassDark, { cast: false });
+  obj.position.set(L.vf.x, L.vf.y, fz + 0.05);
+  top.add(obj);
+  const maskGlow = mesh(new THREE.ShapeGeometry(G.roundedRectShape(5.2, 5.6, 1.4), 16), M.rfGlass, { cast: false });
+  maskGlow.position.set(L.vf.x + 1.5, L.vf.y - 0.8, fz + 0.08);
+  top.add(maskGlow);
   // Rangefinder window: black-framed, with the pale prism face showing through.
-  const rfw = windowUnit(M, L.rf.w, L.rf.h, M.rfGlass, { bezel: L.rf.bezel, depth: 0.6, r: 0.6, frameMat: M.anodized });
+  const rfw = windowUnit(M, L.rf.w, L.rf.h, M.rfGlass, { bezel: L.rf.bezel, depth: 0.6, r: 0.6, frameMat: M.anodized, face: 0.3 });
   rfw.position.set(L.rf.x, L.rf.y, fz - 0.3);
   top.add(rfw);
-  const prism = mesh(new THREE.BoxGeometry(L.rf.w * 0.55, L.rf.h * 0.62, 0.4), M.white, { cast: false });
-  prism.position.set(L.rf.x, L.rf.y, fz - 1.9);
-  top.add(prism);
   // Brightness sensor: a small domed dark window near the top of the block.
   const bright = new THREE.Group();
   bright.add(mesh(G.latheZ([[0, 0], [L.bright.r + 0.35, 0], [L.bright.r + 0.35, 0.25], [L.bright.r, 0.35], [0, 0.35]], 40), M.body));
