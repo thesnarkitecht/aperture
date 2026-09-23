@@ -37,6 +37,9 @@ export function createMaterials() {
     name: 'anodized', color: 0x0c0c0d, metalness: 0.55, roughness: 0.36,
     clearcoat: 0.35, clearcoatRoughness: 0.3,
   });
+  M.crate = new THREE.MeshPhysicalMaterial({
+    name: 'crate', color: 0x7a7d82, metalness: 1, roughness: 0.34, roughnessMap: brushed,
+  });
   M.anodizedMatte = new THREE.MeshPhysicalMaterial({
     name: 'anodizedMatte', color: 0x101011, metalness: 0.4, roughness: 0.55,
   });

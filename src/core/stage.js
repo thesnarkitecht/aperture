@@ -47,12 +47,12 @@ function studioEnvironment(renderer) {
     m.lookAt(...look);
     env.add(m);
   };
-  panel(12, 7, 1.6, [0, 12, 2], [0, 0, 0]);                         // overhead softbox
+  panel(12, 7, 0.85, [0, 12, 2], [0, 0, 0]);                         // overhead softbox
   panel(2.6, 13, 5.2, [-11, 3, 4], [0, 0, 0], [1, 0.96, 0.9]);       // key strip, warm
   panel(2.6, 13, 2.0, [11, 2, -3], [0, 0, 0], [0.88, 0.94, 1.06]);   // fill strip, cool
   panel(16, 1.8, 3.4, [0, 5, -12], [0, 0, 0]);                        // rim bar behind
   panel(10, 1.2, 0.6, [0, -3, 12], [0, 0, 0], [1, 0.9, 0.8]);          // low front kicker
-  panel(3.5, 3.5, 4.0, [7, 9, 8], [0, 0, 0]);                          // small hot spot
+  panel(3.5, 3.5, 2.2, [7, 9, 8], [0, 0, 0]);                          // small hot spot
   panel(20, 6, 0.12, [0, -9, 0], [0, 0, 0], [0.9, 0.9, 1]);            // floor bounce
   const pmrem = new THREE.PMREMGenerator(renderer);
   const rt = pmrem.fromScene(env, 0.035);
@@ -63,7 +63,7 @@ function studioEnvironment(renderer) {
 // Caps HDR values before bloom so pin-point speculars on polished chrome
 // glow softly instead of blooming into blobs. Values above ~4 tone-map to white anyway.
 const ClampShader = {
-  uniforms: { tDiffuse: { value: null }, uMax: { value: 4.0 } },
+  uniforms: { tDiffuse: { value: null }, uMax: { value: 3.0 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uMax; varying vec2 vUv;
     void main(){ vec4 c = texture2D(tDiffuse, vUv); float m = max(max(c.r, c.g), c.b);
@@ -146,7 +146,7 @@ export function createStage(canvas) {
   scene.add(backdrop);
 
   // Direct lights: a shadow-casting key and a cool rim.
-  const key = new THREE.DirectionalLight(0xfff4e8, 1.0);
+  const key = new THREE.DirectionalLight(0xfff4e8, 0.8);
   key.position.set(-2.5, 5, 3.5);
   key.castShadow = true;
   key.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
@@ -233,7 +233,7 @@ export function createStage(canvas) {
     composer.addPass(gtao);
   }
   composer.addPass(new ShaderPass(ClampShader));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.45, 1.5);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.14, 0.4, 1.8);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   const finish = new ShaderPass(VignetteGrainShader);

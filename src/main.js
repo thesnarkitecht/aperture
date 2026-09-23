@@ -174,6 +174,7 @@ async function main() {
     setIris(lens.blades, irisT);
     lens.ap.rotation.z = irisT * 1.3;
     lens.focus.rotation.z = Math.sin(Math.min(1, Math.max(0, s - 0.3)) * Math.PI) * 0.5;
+    lens.lens.visible = weights.lensPark < 0.995; // fully parked = off-screen
     const rays = raysK(s);
     lens.rayMat.uniforms.uTime.value = time;
     lens.rayMat.uniforms.uOpacity.value = rays;

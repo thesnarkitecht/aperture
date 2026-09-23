@@ -19,7 +19,7 @@ export function buildShutter(M, rig) {
   const hole = new THREE.Path();
   G.roundedRectPath(hole, 38, 26, 1, 0, cy, true);
   frameS.holes.push(hole);
-  const frame = mesh(G.extrudeForward(frameS, 1.0, 0.2), M.anodizedMatte);
+  const frame = mesh(G.extrudeForward(frameS, 1.0, 0.2), M.crate);
   frame.position.z = zf;
   g.add(frame);
 
@@ -83,7 +83,7 @@ export function buildShutter(M, rig) {
     setCurtains();
   };
 
-  rig.add(g, 'shutter', [0, 0, -36]);
+  rig.add(g, 'shutter', [0, 26, -40]);
   rig.floaty(g, 1.2, 0.6);
   rig.anchor(frame, 'shutterFrame', [-33, cy + 18, 1]);
   rig.anchor(spot, 'meterSpot', [0, 0, 0.2]);

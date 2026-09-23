@@ -9,8 +9,8 @@ export const keys = [
   { name: 'topPlate',    t: [0, 62, 0],     d: 500,  az: -30,  el: 30 },
   { name: 'rangefinder', t: [2, 78, 0],     d: 450,  az: 30,   el: 20 },
   { name: 'chassis',     t: [0, 4, -26],    d: 560,  az: 140,  el: 16 },
-  { name: 'shutter',     t: [0, -8, -42],   d: 300,  az: 158,  el: 30 },
+  { name: 'shutter',     t: [0, 16, -48],   d: 290,  az: 156,  el: 24 },
   { name: 'film',        t: [0, -58, -12],  d: 500,  az: -142, el: 14 },
-  { name: 'exploded',    t: [0, 30, 40],    d: 980,  az: -40,  el: 18, orbit: 60 },
+  { name: 'exploded',    t: [0, 30, 40],    d: 840,  az: -40,  el: 18, orbit: 60 },
   { name: 'assembled',   t: [0, -2, 6],     d: 340,  az: 28,   el: 12 },
 ];
