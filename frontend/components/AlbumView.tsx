@@ -1,2 +1,0 @@
-import { Photo } from './TimelineGallery';
-export function AlbumView({ photos, onSelect }: { photos: Photo[]; onSelect: (p: Photo) => void }) { const albums = [{ name: 'California', count: 24, photo: photos[1] }, { name: 'Summer 2026', count: 86, photo: photos[0] }, { name: 'Favorites', count: 12, photo: photos[4] }]; return <div className="albums">{albums.map(album => <button className="album-card" key={album.name} onClick={() => onSelect(album.photo)}><img src={album.photo.src} alt="" /><div><h2>{album.name}</h2><span>{album.count} photos</span></div></button>)}</div>; }
