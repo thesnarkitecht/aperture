@@ -120,8 +120,9 @@ export function createMaterials() {
   M.body = M.chrome.clone();
   M.body.name = 'bodyMetal';
   const finishes = {
-    chrome: { color: 0xd6d6d2, metalness: 1, roughness: 0.2, clearcoat: 0, anisotropy: 0.35 },
-    black: { color: 0x080808, metalness: 0.0, roughness: 0.3, clearcoat: 1, anisotropy: 0 },
+    // Non-zero clearcoat/anisotropy on both keeps one shader program, so switching never recompiles.
+    chrome: { color: 0xd6d6d2, metalness: 1, roughness: 0.2, clearcoat: 0.02, anisotropy: 0.35 },
+    black: { color: 0x080808, metalness: 0.0, roughness: 0.3, clearcoat: 1, anisotropy: 0.02 },
   };
   M.setFinish = (name) => {
     const f = finishes[name];
