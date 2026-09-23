@@ -277,6 +277,13 @@ export function buildCharacterGeometry(): THREE.BufferGeometry {
       capEnd: true,
       // Slightly flattened face
       zShift: (a, s) => (Math.sin(a) > 0 ? -Math.pow(Math.sin(a), 6) * 0.012 * (s.c.y < 1.7 ? 1 : 0) : 0),
+      // Hair covers the back and sides of the head down to the nape, and the crown.
+      colorFn: (a, s) => {
+        const sn = Math.sin(a);
+        const y = s.c.y;
+        if (y > 1.685 || (sn < 0.25 && y > 1.545) || (sn < 0.6 && y > 1.62)) return [P.hair, MAT.hair];
+        return null;
+      },
     },
   );
   // nose + ears + eyes + brows

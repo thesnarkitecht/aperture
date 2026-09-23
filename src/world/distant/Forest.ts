@@ -21,7 +21,7 @@ export interface TreeInstance {
 
 function conifer(): THREE.BufferGeometry {
   const trunkC = new THREE.Color(0.09, 0.06, 0.04);
-  const leaf = new THREE.Color(0.032, 0.07, 0.034);
+  const leaf = new THREE.Color(0.02, 0.046, 0.024);
   const parts = [];
   const trunk = new THREE.CylinderGeometry(0.03, 0.045, 0.2, 5, 1, true);
   trunk.translate(0, 0.1, 0);
@@ -55,7 +55,7 @@ function conifer(): THREE.BufferGeometry {
 
 function broadleaf(): THREE.BufferGeometry {
   const trunkC = new THREE.Color(0.1, 0.07, 0.045);
-  const leaf = new THREE.Color(0.075, 0.12, 0.035);
+  const leaf = new THREE.Color(0.04, 0.068, 0.022);
   const trunk = new THREE.CylinderGeometry(0.035, 0.06, 0.4, 5, 1, true);
   trunk.translate(0, 0.2, 0);
   const b1 = new THREE.IcosahedronGeometry(0.4, 1);
@@ -132,11 +132,11 @@ void main() {
   s.albedo = vCol;
   s.normal = normalize(vNormal);
   s.roughness = 0.85;
-  s.specular = 0.25;
-  s.wrap = mix(0.2, 0.55, vLeaf);
+  s.specular = 0.15;
+  s.wrap = mix(0.2, 0.4, vLeaf);
   s.sssColor = vec3(0.75, 0.85, 0.35);
-  s.translucency = 0.35 * vLeaf;
-  s.rim = 0.6 * vLeaf;
+  s.translucency = 0.12 * vLeaf;
+  s.rim = 0.25 * vLeaf;
   s.ao = vLight.y * mix(0.4, 1.0, saturate(vLight.z * 1.2));
   float sunVis = aw_cloudShadow(vWorld) * vLight.x;
   vec3 col = aw_shade(s, vWorld, V, sunVis);

@@ -76,6 +76,9 @@ vec3 aw_shade(AwSurface s, vec3 P, vec3 V, float sunVis) {
   float w = s.wrap;
   float wrapped = saturate((NoLraw + w) / ((1.0 + w) * (1.0 + w)));
   vec3 diffuseTerm = mix(s.sssColor * wrapped, vec3(NoL), NoL) ;
+  // Soft cel band: a painterly light/shadow split with a narrow, warm-tinted terminator.
+  float band = smoothstep(-0.04, 0.12, NoLraw);
+  diffuseTerm = mix(diffuseTerm, s.sssColor * band * 0.62 + diffuseTerm * 0.38, 0.55);
   vec3 direct = diffAlbedo * diffuseTerm / AW_PI;
 
   // Specular

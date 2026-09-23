@@ -47,7 +47,7 @@ export interface AmbienceInput {
 
 // --- Tuning -----------------------------------------------------------------
 /** Peak gain range of a single bird call (before distance attenuation). */
-const BIRD_LEVEL: [number, number] = [0.02, 0.05];
+const BIRD_LEVEL: [number, number] = [0.012, 0.032];
 /** Mean seconds between calls at full / minimal activity. */
 const BIRD_INTERVAL: [number, number] = [3.2, 10];
 /** Grass rustle level at a sprint in full grass. */

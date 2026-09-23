@@ -40,11 +40,11 @@ export interface WindInput {
 
 // --- Tuning -----------------------------------------------------------------
 /** Layer levels at full airspeed (air = 1, ~60 m/s free fall). */
-const FULL = { rumble: 0.5, body: 0.5, hiss: 0.14, whistle: 0.02 };
+const FULL = { rumble: 0.4, body: 0.4, hiss: 0.115, whistle: 0.018 };
 /** Layer levels of the gentle island breeze (air ≈ 0). */
 const BREEZE = { rumble: 0.065, body: 0.08, hiss: 0.014, whistle: 0.012 };
-/** Gliding softens the airspeed-driven layers by these factors. */
-const GLIDE_SOFTEN = { rumble: 0.72, body: 0.78, hiss: 0.55, whistle: 0.6 };
+/** Gliding scales the airspeed-driven layers by these factors (smoother, less hiss). */
+const GLIDE_SOFTEN = { rumble: 0.9, body: 1.0, hiss: 0.7, whistle: 0.6 };
 /** Clothing flap level at full free fall. */
 const CLOTH_FALL = 0.2;
 /** Glider canopy flutter level (during an occasional flutter burst). */
@@ -209,7 +209,7 @@ export class Wind {
 
   update(s: WindInput): void {
     const a = clamp01(s.air);
-    const aa = Math.pow(a, 1.5);
+    const aa = Math.pow(a, 1.3);
     const f = clamp01(s.fall);
     const g = clamp01(s.glide);
     const cloud = clamp01(s.cloud);

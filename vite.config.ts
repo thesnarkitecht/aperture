@@ -8,7 +8,8 @@ export default defineConfig({
   build: {
     target: 'es2022',
     outDir: 'dist',
-    assetsInlineLimit: 0,
+    // Inline every asset (models are small) so the build can ship as one self-contained file.
+    assetsInlineLimit: 100_000_000,
     chunkSizeWarningLimit: 2000,
     sourcemap: false,
     rollupOptions: { output: { inlineDynamicImports: true } },

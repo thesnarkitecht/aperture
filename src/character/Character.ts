@@ -10,6 +10,8 @@ import { buildCharacterGeometry, createCharacterMaterial } from './CharacterMesh
 import { Animator, type AnimState } from './Animator';
 import { clamp, damp, dampAngle, angleDelta, lerp, smoothstep, saturate } from '../core/math';
 import { withGlobals } from '../render/ShaderLib';
+import { Scarf } from './Scarf';
+import type { ModelHero } from './ModelHero';
 
 export interface CharInput {
   /** World-space desired move direction (xz) with magnitude 0..1. */
@@ -70,6 +72,17 @@ export class Character {
     this.glider = g.mesh;
     this.gliderMat = g.mat;
     bones[B.chest].add(this.glider);
+    this.scarf = new Scarf();
+  }
+  readonly scarf: Scarf;
+  model: ModelHero | null = null;
+
+  /** Swap the procedural body for the skinned hero model (the procedural rig keeps driving the glider). */
+  useModel(m: ModelHero): void {
+    this.model = m;
+    this.mesh.visible = false;
+    this.scarf.mesh.visible = false;
+    this.root.add(m.root);
   }
 
   /** Crescent wing that unfurls from the back clasp: ribs + translucent rune-lit fabric. */
@@ -175,6 +188,7 @@ export class Character {
     this.glideDeploy = 0;
     this.dive = 0;
     this.bodyQ.identity();
+    this.scarf?.reset();
   }
 
   get horizontalSpeed(): number {
@@ -364,6 +378,16 @@ export class Character {
       airflow: saturate(this.velocity.length() / 50),
       time: this.time,
     });
+    // Scarf tails: pinned behind the neck, simulated in world space.
+    this.root.updateMatrixWorld(true);
+    const neck = this.bones[B.neck].getWorldPosition(new THREE.Vector3());
+    const qW = this.bones[B.chest].getWorldQuaternion(new THREE.Quaternion());
+    const back = new THREE.Vector3(0, 0, -1).applyQuaternion(qW);
+    const side = new THREE.Vector3(1, 0, 0).applyQuaternion(qW);
+    const knot = neck.addScaledVector(back, 0.09).add(new THREE.Vector3(0, -0.02, 0).applyQuaternion(qW));
+    const wind = new THREE.Vector3(0.85, 0.05, 0.52).multiplyScalar(3.5 + Math.sin(this.time * 0.7) * 1.5);
+    this.scarf.update(dt, knot, side, back, this.velocity, wind, this.time);
+    this.model?.update(dt, { state: this.state, speed: hs, airTime: this.airTime, glideDeploy: this.glideDeploy, landT: this.landT, dive: this.dive, time: this.time });
     this.gliderMat.uniforms.uDeploy.value = this.glideDeploy;
     this.glider.visible = this.glideDeploy > 0.005;
     // Hair responds to wind + airflow (in character space).

@@ -132,10 +132,11 @@ export function terrainHeightFn(x: number, z: number): number {
 
   // ---- mountains
   const ero = erodedFbm(wx / 4300, wz / 4300, 8); // ~[-1,1]
-  const ridge = nRidge.ridged2(wx / 13000, wz / 13000, 5); // ~[0,0.9]
-  let s = sat(0.42 * (0.5 + 0.6 * ero) + 0.85 * ridge - 0.3);
-  s = Math.pow(s, 1.45);
-  let amp = 2000 + 1100 * (0.5 + 0.5 * nMisc.noise2(x / 26000 + 3.1, z / 26000 - 1.7));
+  const ridge = nRidge.ridged2(wx / 13000, wz / 13000, 3); // massifs
+  const crest = nRidge.ridged2(wx / 5200 + 7.3, wz / 5200 - 2.9, 7); // sharp ridge network
+  let s = sat(0.3 * (0.5 + 0.6 * ero) + 0.6 * ridge + 0.55 * crest - 0.4);
+  s = Math.pow(s, 1.3);
+  let amp = 2300 + 1300 * (0.5 + 0.5 * nMisc.noise2(x / 26000 + 3.1, z / 26000 - 1.7));
 
   // Valley coordinates.
   const vc = valleyCenter(along);
@@ -145,16 +146,19 @@ export function terrainHeightFn(x: number, z: number): number {
 
   // Flanks of the corridor are guaranteed mountainous (peaks pierce the cloud deck).
   const flank = sstep(-4000, -500, along) * (1 - sstep(10000, 13000, along)) * sstep(W * 0.9, W * 2.2, dsV) * (1 - sstep(W * 3.5, W * 6.5, dsV));
-  s = Math.max(s, flank * (0.36 + 0.45 * (0.5 + 0.5 * ero)));
+  s += flank * (0.22 + 0.6 * crest * crest + 0.2 * (0.5 + 0.5 * ero)) * (1 - 0.5 * s);
   amp *= 1 + 0.3 * flank;
 
   // Great range on the horizon under the sun, with a notch framing the sunset.
   const rangeM = sstep(20000, 25000, along) * (1 - sstep(33000, 40000, along)) * (1 - sstep(10000, 17000, Math.abs(side)));
   amp *= 1 + 0.75 * rangeM;
-  s = Math.max(s, rangeM * (0.4 + 0.45 * (0.5 + 0.5 * ero)) * sstep(21500, 25500, along));
+  s += rangeM * (0.2 + 0.6 * crest * crest + 0.15 * (0.5 + 0.5 * ero)) * sstep(21500, 25500, along) * (1 - 0.5 * s);
   let hMount = amp * s;
   const notch = sstep(15500, 19000, along) * (1 - sstep(38000, 42000, along)) * (1 - sstep(2000, 5200, Math.abs(side + 300 * nMisc.noise2(along / 3000, 1.3))));
-  hMount = hMount + (Math.min(hMount, 380 + 260 * (0.5 + 0.5 * ero)) - hMount) * notch;
+  hMount = hMount + (Math.min(hMount, 300 + 220 * (0.5 + 0.5 * ero)) - hMount) * notch;
+  // Near the sky island the peaks stay inside the cloud sea, so it reads as endless from above.
+  const capH = 900 + 2200 * sstep(6000, 16000, Math.hypot(x, z));
+  if (hMount > capH) hMount = capH + (hMount - capH) * 0.12;
 
   const hills = 70 + 150 * (0.5 + 0.5 * nMisc.fbm2(x / 3600, z / 3600, 4));
   let h = hills + hMount;
@@ -367,7 +371,7 @@ export class TerrainData {
         const px = x + sx * d;
         const pz = z + sz * d;
         const hs = this.sampleField(hm, px, pz);
-        const q = (26 * (ray - hs)) / d; // penumbra ~ 1/26 rad
+        const q = (40 * (ray - hs)) / d; // penumbra ~ 1/40 rad
         if (q < lit) {
           lit = q;
           if (lit <= 0) {

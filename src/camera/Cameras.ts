@@ -196,44 +196,44 @@ export const OPENING_SHOTS: Shot[] = [
     to: { space: 'char', pos: [-10, 4.5, -12], look: [0, 0.4, 14], fov: 44 } },
   // Close three-quarter behind: rim-lit idle, looking around.
   { name: 'idle-close', start: 6.5, duration: 3.5, blend: 1.5,
-    from: { space: 'char', pos: [-2.4, 1.7, -3.2], look: [0.2, 1.45, 2], fov: 40 },
-    to: { space: 'char', pos: [-1.6, 1.6, -3.4], look: [0.1, 1.4, 3], fov: 42 } },
+    from: { space: 'char', pos: [-3.6, 2.12, -4.8], look: [0.2, 1.45, 2], fov: 40 },
+    to: { space: 'char', pos: [-2.4, 2, -5.1], look: [0.1, 1.4, 3], fov: 42 } },
   // Walk: follow from behind, slightly high.
   { name: 'walk', start: 9.5, duration: 6, blend: 1.2,
-    from: { space: 'char', pos: [-1.2, 1.9, -4.2], look: [0, 1.3, 4], fov: 48 },
-    to: { space: 'char', pos: [1.0, 1.8, -4.5], look: [0, 1.2, 5], fov: 52 } },
+    from: { space: 'char', pos: [-1.8, 2.38, -6.3], look: [0, 1.3, 4], fov: 48 },
+    to: { space: 'char', pos: [1.5, 2.25, -6.75], look: [0, 1.2, 5], fov: 52 } },
   // Run: low tracking shot from the side, the island streaming past.
   { name: 'run-side', start: 15.5, duration: 5.5, blend: 1.0,
-    from: { space: 'char', pos: [4.2, 0.9, 1.5], look: [0, 1.1, 1.5], fov: 50 },
-    to: { space: 'char', pos: [3.6, 1.0, -1.5], look: [0, 1.1, 3], fov: 54 } },
+    from: { space: 'char', pos: [6.3, 1.12, 2.25], look: [0, 1.1, 1.5], fov: 50 },
+    to: { space: 'char', pos: [5.4, 1.25, -2.25], look: [0, 1.1, 3], fov: 54 } },
   // Charge the cliff: low behind, FOV widens, camera pulls back to reveal the drop.
   { name: 'run-cliff', start: 21, duration: 8, blend: 1.2, shake: 0.4,
-    from: { space: 'char', pos: [0.8, 1.2, -4.0], look: [0, 1.0, 8], fov: 58 },
-    to: { space: 'char', pos: [0.6, 1.6, -6.0], look: [0, 0.2, 12], fov: 66 } },
+    from: { space: 'char', pos: [1.2, 1.5, -6], look: [0, 1.0, 8], fov: 58 },
+    to: { space: 'char', pos: [0.9, 2, -9], look: [0, 0.2, 12], fov: 66 } },
   // Takeoff: the camera stops at the edge; the hero flies out and shrinks against the sky.
   { name: 'edge', start: ['jump', 0.05], duration: 2.8, blend: 0.35, ease: 'outCubic',
-    from: { space: 'anchor', pos: [0.5, 1.8, -3.5], look: [0, 0.5, 4], fov: 66 },
-    to: { space: 'anchor', pos: [0.4, 2.2, -1.2], look: [0, -0.5, 1], fov: 58 } },
+    from: { space: 'anchor', pos: [0.75, 2.25, -5.25], look: [0, 0.5, 4], fov: 66 },
+    to: { space: 'anchor', pos: [0.6, 2.75, -1.8], look: [0, -0.5, 1], fov: 58 } },
   // Below the hero looking up: the island hangs above, roots and all.
   { name: 'underside', start: ['jump', 2.8], duration: 4.2, blend: 0, ease: 'linear',
     from: { space: 'char', pos: [3.5, -9, 9], look: [0, 1.0, 0], fov: 62 },
     to: { space: 'char', pos: [6, -12, 12], look: [0, 3.0, 0], fov: 66 } },
   // Wide falling shot: hero small, clouds approaching.
   { name: 'fall-wide', start: ['jump', 7.0], duration: 5, blend: 1.5, shake: 0.3,
-    from: { space: 'char', pos: [-7, 6, -9], look: [0, -3, 2], fov: 70 },
-    to: { space: 'char', pos: [-3, 4, -5], look: [0, -4, 2], fov: 76 } },
+    from: { space: 'char', pos: [-10.5, 7.5, -13.5], look: [0, -3, 2], fov: 70 },
+    to: { space: 'char', pos: [-4.5, 5, -7.5], look: [0, -4, 2], fov: 76 } },
   // Into the clouds: tight above-behind, heavy buffeting.
   { name: 'cloud', start: ['cloud', -0.8], duration: 9, blend: 1.2, shake: 1.0,
-    from: { space: 'char', pos: [-1.5, 3.6, -2.6], look: [0, -2, 1.5], fov: 78 },
-    to: { space: 'char', pos: [-1.2, 3.2, -2.4], look: [0, -2, 1.5], fov: 80 } },
+    from: { space: 'char', pos: [-2.25, 4.5, -3.9], look: [0, -2, 1.5], fov: 78 },
+    to: { space: 'char', pos: [-1.8, 4, -3.6], look: [0, -2, 1.5], fov: 80 } },
   // Burst out below: the world opens up — FOV widens dramatically.
   { name: 'reveal', start: ['exit', 0.2], duration: 4.5, blend: 1.0, ease: 'outCubic', shake: 0.4,
-    from: { space: 'char', pos: [-1.5, 3.5, -3.0], look: [0, -3, 6], fov: 70 },
-    to: { space: 'char', pos: [-3.5, 5.0, -8.0], look: [0, -8, 30], fov: 84 } },
+    from: { space: 'char', pos: [-2.25, 4.38, -4.5], look: [0, -3, 6], fov: 70 },
+    to: { space: 'char', pos: [-5.25, 6.25, -12], look: [0, -8, 30], fov: 84 } },
   // Deploy: close side view of the wing unfurling.
   { name: 'deploy', start: ['deploy', -0.3], duration: 4, blend: 0.8,
-    from: { space: 'char', pos: [3.8, 0.8, 1.0], look: [0, 0.8, 0.5], fov: 55 },
-    to: { space: 'char', pos: [3.4, 1.8, -3.5], look: [0, 0.8, 1.5], fov: 60 } },
+    from: { space: 'char', pos: [5.7, 1, 1.5], look: [0, 0.8, 0.5], fov: 55 },
+    to: { space: 'char', pos: [5.1, 2.25, -5.25], look: [0, 0.8, 1.5], fov: 60 } },
   // The long pull-back: hero becomes a small silhouette gliding into the sunset.
   { name: 'glide-pullback', start: ['deploy', 3.7], duration: 36, blend: 2.5, ease: 'inOutSine',
     from: { space: 'char', pos: [1.2, 2.0, -6.5], look: [0, 0.5, 12], fov: 58 },

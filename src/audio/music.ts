@@ -45,7 +45,7 @@ export interface MusicInput {
 
 // --- Tuning -----------------------------------------------------------------
 /** Overall score level (gate on both dry and reverb send). */
-const MUSIC_LEVEL = 0.5;
+const MUSIC_LEVEL = 0.34;
 /** Peak gain of one pad chord layer. */
 const PAD_PEAK = 0.022;
 /** Peak gain of a pluck at velocity 1. */

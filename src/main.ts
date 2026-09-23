@@ -16,6 +16,8 @@ import { Grass } from './world/Grass';
 import { Character, type CharInput } from './character/Character';
 import { CinematicCamera, GameplayCamera, OPENING_SHOTS, type CamState } from './camera/Cameras';
 import { UI } from './ui/UI';
+import { ModelHero } from './character/ModelHero';
+import { Props } from './world/Props';
 import { CLOUD_BASE, CLOUD_TOP, ISLAND_Y, SUN_DIR } from './world/WorldConfig';
 
 // Optional modules (built in parallel); the app runs with or without them.
@@ -120,7 +122,18 @@ class App {
       return this.world ? this.world.heightAt(x, z) : -Infinity;
     };
     this.hero = new Character(ground);
-    this.scene.add(this.hero.root);
+    this.scene.add(this.hero.root, this.hero.scarf.mesh);
+    try {
+      const model = new ModelHero();
+      await model.load();
+      this.hero.useModel(model);
+    } catch (e) {
+      console.warn('Hero model unavailable, using procedural body', e);
+    }
+    await this.tick('growing the forest', 0.5);
+    const props = new Props();
+    await props.build(this.island);
+    this.scene.add(props.group);
     this.gameCam = new GameplayCamera(ground);
     this.hero.onFootstep = (i) => this.audio?.footstep(i, 'grass');
     this.hero.onEvent = (e, v) => {

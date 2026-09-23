@@ -141,10 +141,10 @@ void main() {
   alb = mix(alb, canopy, fMask);
 
   // --- rock, stratified
-  float strata = fract(h / 43.0 + nMid * 0.9 + nLarge * 2.0);
-  vec3 rockA = vec3(0.19, 0.17, 0.15);
-  vec3 rockB = vec3(0.32, 0.28, 0.24);
-  vec3 rock = mix(rockA, rockB, smoothstep(0.3, 0.7, strata) * (0.6 + 0.4 * nFine));
+  float strata = fract(h / 61.0 + nMid * 2.2 + nLarge * 3.0);
+  vec3 rockA = vec3(0.21, 0.185, 0.16);
+  vec3 rockB = vec3(0.28, 0.25, 0.215);
+  vec3 rock = mix(rockA, rockB, smoothstep(0.2, 0.8, strata) * (0.5 + 0.5 * nFine) * fade);
   rock *= mix(0.75, 1.1, nMid);
   rock *= 1.0 - 0.35 * saturate(cav);
   float rockW = smoothstep(0.30, 0.48, slope + (nMid - 0.5) * 0.25 + saturate((h - 1400.0) / 2500.0) * 0.3 - saturate(-cav) * 0.1);
@@ -234,7 +234,6 @@ export function buildTerrainMesh(td: TerrainData, tex: TerrainTextures): THREE.M
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'DistantTerrain';
   mesh.matrixAutoUpdate = false;
-  mesh.userData.receiveShadow = true;
   return mesh;
 }
 
@@ -267,8 +266,8 @@ float dw_warpT(vec4 w, float x) { return w.w + asinh((x - w.x) / w.y) / w.z; }
 
 vec2 dw_waveGrad(vec2 p, float t, float fade) {
   vec2 g = vec2(0.0);
-  float lam = 26.0;
-  float amp = 0.085;
+  float lam = 21.0;
+  float amp = 0.035;
   float ang = 0.3;
   for (int i = 0; i < 5; i++) {
     vec2 d = vec2(cos(ang), sin(ang));
@@ -285,7 +284,10 @@ vec2 dw_waveGrad(vec2 p, float t, float fade) {
   float n0 = aw_vnoise(q);
   float nx = aw_vnoise(q + vec2(e, 0.0));
   float nz = aw_vnoise(q + vec2(0.0, e));
-  g += vec2(nx - n0, nz - n0) / e * 0.05;
+  g += vec2(nx - n0, nz - n0) / e * 0.09;
+  vec2 q2 = (p + uSunXZ.yx * t * 0.4) * 0.9;
+  float m0 = aw_vnoise(q2);
+  g += vec2(aw_vnoise(q2 + vec2(e, 0.0)) - m0, aw_vnoise(q2 + vec2(0.0, e)) - m0) / e * 0.05;
   return g * fade;
 }
 
@@ -301,7 +303,7 @@ void main() {
   vec4 bk = texture(uBakeTex, uvB);
   float depth = max(uWaterLevel - hT, 0.0);
 
-  float fade = 1.0 / (1.0 + dist / 900.0);
+  float fade = 1.0 / (1.0 + dist / 600.0);
   vec2 g = dw_waveGrad(P.xz, uDwTime, fade) * smoothstep(0.0, 1.5, depth + 0.3);
   vec3 N = normalize(vec3(-g.x, 1.0, -g.y));
   float NoV = max(dot(N, V), 1e-3);

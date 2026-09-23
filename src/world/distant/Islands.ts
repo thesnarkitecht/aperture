@@ -415,7 +415,6 @@ export function buildIslands(tower: THREE.Vector3 | null): IslandsResult {
   );
   props.name = 'FloatingIslands';
   props.matrixAutoUpdate = false;
-  props.userData.castShadow = true;
 
   let falls: THREE.Mesh | null = null;
   if (fi.length) {

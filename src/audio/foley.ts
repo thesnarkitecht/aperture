@@ -16,7 +16,7 @@ export type Surface = 'grass' | 'dirt' | 'rock';
 
 // --- Tuning -----------------------------------------------------------------
 /** Overall footstep level at intensity 1. */
-const FOOT_LEVEL = 0.34;
+const FOOT_LEVEL = 0.28;
 /** Overall landing level at intensity 1. */
 const LAND_LEVEL = 0.55;
 /** Glider deploy / fold level. */
