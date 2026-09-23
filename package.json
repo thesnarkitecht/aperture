@@ -1,0 +1,24 @@
+{
+  "name": "aperture",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A real-time cinematic sky-island opening sequence rendered in the browser.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "build:single": "vite build && node scripts/inline.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "playwright": "^1.63.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.0"
+  }
+}
