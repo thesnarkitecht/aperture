@@ -132,8 +132,9 @@ High is the default; pick another preset from the pause menu.
 - Hero: **Rogue (Hooded)** from the *KayKit Adventurers Character Pack 1.0* by Kay Lousberg,
   [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0/). The shader remaps its greens to an
   original indigo-teal palette. See `src/assets/KAYKIT_LICENSE.txt`.
-- Trees and rocks: *KayKit Medieval Hexagon Pack 1.0* by Kay Lousberg, CC0 1.0, repacked into
-  self-contained GLBs by `scripts/pack-glb.mjs`. See `src/assets/nature/LICENSE.txt`.
+- Trees, rocks and buildings (windmill, tower, well, the valley hamlets and keep): *KayKit
+  Medieval Hexagon Pack 1.0* by Kay Lousberg, CC0 1.0, repacked into self-contained GLBs by
+  `scripts/pack-glb.mjs`. See `src/assets/nature/LICENSE.txt` and `src/assets/buildings/LICENSE.txt`.
 - Everything else is procedural and original: the sky, clouds, island, terrain, water,
   forests, floating islands, ruins, glider, scarf, shaders and the synthesized audio.
 
